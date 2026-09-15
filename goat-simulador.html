@@ -1,6 +1,12 @@
 <!DOCTYPE html>
 <html lang="es"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<meta name="theme-color" content="#05070d">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="GOAT Simulator">
+<link rel="manifest" href="manifest.webmanifest">
 <title>Goat Format — simulador</title>
 <style>
 :root{
@@ -993,6 +999,41 @@ body.sinCarril #pestana{display:block}
 #ajustesJuego .ajCaja{width:340px;max-width:90vw;padding:18px;background:linear-gradient(180deg,#14223b,#091224);border:1px solid #607aa5;box-shadow:0 18px 55px #000;border-radius:10px}
 #ajustesJuego h3{margin:0 0 12px;color:#f0cc69;letter-spacing:.08em}.ajCerrar{width:100%;margin-top:10px;padding:8px;background:#1b2c48;border:1px solid #607aa5;color:#fff;cursor:pointer}
 .preTop{display:flex;gap:8px;align-items:center;justify-content:center;margin:8px 0 14px}.preScore{color:#f0cc69;font-weight:700}.preCols{display:grid;grid-template-columns:1fr 1fr;gap:10px}.preCol{min-height:150px;max-height:260px;overflow:auto;padding:8px;border:1px solid #314363;background:rgba(5,11,23,.7)}.preCol h3{position:sticky;top:-8px;margin:-8px -8px 7px;padding:8px;background:#101b30;color:#f0cc69;font-size:12px;z-index:2}.preCarta{display:flex;justify-content:space-between;gap:8px;width:100%;margin:3px 0;padding:5px 7px;border:1px solid #304566;background:#14223a;color:#dbe8fb;text-align:left;cursor:pointer;font:inherit;font-size:10px}.preCarta:hover{border-color:#d2a83c}.preBusca{width:100%;box-sizing:border-box;margin:9px 0;padding:8px;border:1px solid #536a91;background:#101b30;color:#fff}.prePool{max-height:110px;overflow:auto}.preNota{min-height:18px;margin:8px 0;color:#9fb0ca;font-size:11px}.prePrimer{display:none;margin:10px 0;padding:10px;border:1px solid rgba(212,173,69,.4);background:rgba(22,34,57,.9)}.prePrimer.on{display:block}
+
+/* Convulsion of Nature: la carta pubblica è davvero la carta superiore del
+   mucchio, non una minuscola etichetta separata dal Deck. */
+.card.deckPubblica .face.front{box-shadow:0 0 0 2px #f0cc69,0 0 24px rgba(240,204,105,.8),0 8px 18px rgba(0,0,0,.72)}
+.card.deckPubblica::after{content:"TOP";position:absolute;left:50%;top:-15px;transform:translateX(-50%) rotate(180deg);z-index:5;padding:2px 6px;background:#d8b45c;color:#07101d;font-size:7px;font-weight:900;letter-spacing:.1em;box-shadow:0 2px 7px #000}
+.slot.deckGirato{border-color:#d8b45c;box-shadow:0 0 18px rgba(216,180,92,.42)}
+#rotar .rotarFs{margin-top:18px;min-height:46px;padding:10px 18px;border:1px solid var(--gold);background:#172641;color:#fff;font:700 12px/1 system-ui;letter-spacing:.08em;text-transform:uppercase}
+
+/* Secondo passaggio mobile: l'intera barra resta dentro lo schermo, il
+   tappeto usa la misura realmente visibile e ogni risposta ha un bersaglio
+   tattile di almeno 44 px. */
+@media (max-width:900px), (max-height:560px), (pointer:coarse) and (max-width:1250px){
+  :root{--cw:clamp(50px,14dvh,64px);--ch:calc(var(--cw)*1.46);--colw:calc(var(--cw)*1.42);--gap:3px;--tilt:3deg;--mano-mia:1.55;--mano-rival:.52}
+  #topbar{min-height:38px;max-height:38px;overflow:visible;gap:4px;padding:3px max(5px,env(safe-area-inset-right)) 3px max(5px,env(safe-area-inset-left))}
+  #topbar .brand{font-size:10px;max-width:74px;line-height:1.05}
+  #turnInfo{max-width:128px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:9px!important}
+  #topbar .btn{width:34px;height:32px;min-width:34px;padding:0;display:grid;place-items:center;font-size:0;overflow:hidden}
+  #topbar .soloMovil,#btnAudio,#btnAjustesJuego{font-size:16px}
+  #btnChain::before{content:"⛓";font-size:15px}#btnLog::before{content:"⇩";font-size:17px}
+  #btnRendirse::before{content:"⚑";font-size:17px}#btnMenu::before{content:"↩";font-size:18px}
+  #side{display:none}
+  #stage{padding-top:1px;padding-bottom:max(4px,env(safe-area-inset-bottom))}
+  #grid{padding:7px}
+  #grid .divider{margin:2px 0}
+  #prompt{right:max(32px,env(safe-area-inset-right));top:40px;bottom:max(4px,env(safe-area-inset-bottom));width:min(48vw,286px);max-height:none;padding:8px 9px;overflow:auto;overscroll-behavior:contain}
+  #prompt .popts .btn{min-height:44px;padding:8px 10px;font-size:11.5px;line-height:1.25;white-space:normal;touch-action:manipulation}
+  #prompt .ppleg{width:34px;height:34px;top:3px;right:3px}
+  #choice{max-width:calc(100vw - 20px);max-height:calc(100dvh - 20px);overflow:auto}
+  #choice .cbtn{min-height:44px;padding:10px 15px;font-size:13px;touch-action:manipulation}
+  #controles button{min-height:42px;touch-action:manipulation}
+  .card::before{inset:-10px}.card.in-hand::before{inset:-10px -5px}
+  .toast{max-width:70vw;line-height:1.35;text-align:center}
+}
+@media (orientation:portrait) and (max-width:900px){#rotar .rotarFs{display:inline-flex;align-items:center;justify-content:center}}
+@media (display-mode:fullscreen),(display-mode:standalone){body{height:100dvh}}
 </style></head>
 <body>
 
@@ -1143,7 +1184,8 @@ body.sinCarril #pestana{display:block}
 <div id="coin"></div>
 <div id="zoneview"></div><div id="confirm"></div><div id="fin"></div><div id="lupa"></div>
 <div id="rotar"><div><div class="ricon">⟲</div><h2>Gira el móvil</h2>
-  <p>El tablero de Goat necesita pantalla apaisada. Pon el teléfono en horizontal para jugar.</p></div></div>
+  <p>El tablero de Goat necesita pantalla apaisada. Pon el teléfono en horizontal para jugar.</p>
+  <button class="rotarFs" id="btnPantallaRotar">⛶ Pantalla completa</button></div></div>
 <div id="ghost"></div><div id="flash"></div><div id="choice"></div>
 <div id="boot"><div><h1>GOAT FORMAT</h1><p>Cargando el núcleo de reglas…</p>
   <div class="bar"><i></i></div></div></div>
@@ -1790,9 +1832,53 @@ class GoatDuel {
      Así la IA y la vista lo leen sin volverse asíncronas.
      No es hacer trampa: solo se piden ATK/DEF de los monstruos EN CAMPO,
      que están a la vista de los dos jugadores. */
+  convulsionAttiva(){
+    return [0,1].some(p=>
+      [...(this.zones[p][LOC.SZONE]??[]),...(this.zones[p][LOC.FZONE]??[])]
+        .some(c=>c && !isFaceDown(c.position) &&
+          (c.code===62966332 || this.cardDb.get(c.code)?.alias===62966332)));
+  }
+
+  pubblicaCimaDeck(player, code){
+    player=Number(player); code=Number(code)||0;
+    if(player!==0 && player!==1) return;
+    if(this.deckVisible[player]===code) return;
+    this.deckVisible[player]=code;
+    this.emit("deckPreview",{player,code});
+  }
+
+  /* La query del core è la fonte di verità. Il nostro array DECK serve
+     soltanto ad animare il mucchio e non conosce l'ordine segreto dopo i
+     mescolamenti; leggerne l'ultimo elemento produceva quindi anteprime
+     plausibili ma sbagliate. Con il Deck capovolto il core rende pubblica
+     la cima: la rileggiamo anche se un'anteprima esiste già. */
+  refrescarCimasDeck(attiva=this.deckReversed || this.convulsionAttiva()){
+    const F=this.X.OcgQueryFlags;
+    if(!attiva || !F || typeof this.lib.duelQueryLocation!=="function"){
+      for(const p of [0,1]) this.pubblicaCimaDeck(p,0);
+      return;
+    }
+    for(const p of [0,1]){
+      try{
+        const righe=this.lib.duelQueryLocation(this.handle,
+          {flags:F.CODE|F.POSITION,controller:p,location:LOC.DECK});
+        if(!righe || typeof righe.then==="function") continue;
+        /* Nel Deck la sequenza più alta è sempre la cima corrente, anche
+           quando Convulsion ha invertito fisicamente l'ordine. */
+        const cima=[...righe].reverse().find(q=>q && Number(q.code)>0);
+        this.pubblicaCimaDeck(p,cima?.code??0);
+      }catch(e){ /* una build senza query continuerà a usare DECK_TOP */ }
+    }
+  }
+
   refrescarStats(){
     const F = this.X.OcgQueryFlags;
     if(!F || typeof this.lib.duelQueryLocation !== "function") return;
+    /* A ogni pausa decisionale riallineiamo lo stato con la carta continua
+       realmente sul terreno. Questo corregge anche una sequenza REVERSE_DECK
+       persa o arrivata nello stesso blocco di una pescata. */
+    this.deckReversed=this.convulsionAttiva();
+    this.refrescarCimasDeck(this.deckReversed);
     const flags = F.CODE | F.POSITION | F.ATTACK | F.DEFENSE | F.EQUIP_CARD;
     for(const p of [0,1]){
       let filas;
@@ -1843,35 +1929,6 @@ class GoatDuel {
         });
       }
     }
-    /* Convulsion of Nature rende pubblica la cima di entrambi i Deck. Il
-       codice corretto arriva dai messaggi DECK_TOP del core; qui si pulisce
-       l'anteprima se la carta non è più attiva. */
-    const convulsionActiva=[0,1].some(p=>
-      [...(this.zones[p][LOC.SZONE]??[]),...(this.zones[p][LOC.FZONE]??[])]
-        .some(c=>c && !isFaceDown(c.position) &&
-          (c.code===62966332 || this.cardDb.get(c.code)?.alias===62966332)));
-    /* Alcune build di ocgcore non inviano subito DECK_TOP per entrambi i
-       giocatori. In quel caso recuperiamo una sola volta la carta in cima
-       dalla query pubblica del Deck capovolto (la cima è l'ultima sequenza). */
-    if(convulsionActiva){
-      this.deckReversed=true;
-      for(const p of [0,1]) if(!this.deckVisible[p]){
-        try{
-          const righe=this.lib.duelQueryLocation(this.handle,
-            {flags:F.CODE|F.POSITION,controller:p,location:LOC.DECK});
-          if(righe && typeof righe.then!=="function"){
-            const cima=[...righe].reverse().find(q=>q?.code);
-            if(cima?.code){this.deckVisible[p]=cima.code;this.emit("deckPreview",{player:p,code:cima.code});}
-          }
-        }catch(e){}
-      }
-    }
-    if(!convulsionActiva && this.deckReversed){
-      this.deckReversed=false;
-      for(const p of [0,1]) if(this.deckVisible[p]){
-        this.deckVisible[p]=0; this.emit("deckPreview",{player:p,code:0});
-      }
-    }
   }
 
   handle_(m){
@@ -1886,15 +1943,11 @@ class GoatDuel {
         this.emit("phase",{ phase:m.phase }); break;
       case T.REVERSE_DECK:
         this.deckReversed=!this.deckReversed;
-        if(!this.deckReversed) for(const p of [0,1]){
-          this.deckVisible[p]=0; this.emit("deckPreview",{player:p,code:0});
-        }
+        this.refrescarCimasDeck(this.deckReversed);
         break;
       case T.DECK_TOP:
-        if(this.deckReversed && (m.count??0)===0){
-          this.deckVisible[m.player]=m.code??0;
-          this.emit("deckPreview",{player:m.player,code:m.code??0});
-        }
+        if((this.deckReversed || this.convulsionAttiva()) && (m.count??0)===0)
+          this.pubblicaCimaDeck(m.player,m.code??0);
         break;
 
       case T.DRAW: {
@@ -1910,7 +1963,9 @@ class GoatDuel {
           card.position = POS.FACEUP_ATTACK;
           drawn.push(card);
         }
-        this.emit("draw",{ player:m.player, cards:drawn }); break;
+        this.emit("draw",{ player:m.player, cards:drawn });
+        if(this.deckReversed || this.convulsionAttiva()) this.refrescarCimasDeck(true);
+        break;
       }
       case T.MOVE: {
         const from = m.from, to = m.to;
@@ -1939,6 +1994,8 @@ class GoatDuel {
           to:{ controller:to.controller, location:to.location, sequence:to.sequence,
                position:card.position, faceDown:isFaceDown(card.position),
                defense:isDefense(card.position) } });
+        if(from.location===LOC.DECK || to.location===LOC.DECK)
+          this.refrescarCimasDeck(this.deckReversed || this.convulsionAttiva());
         break;
       }
       case T.POS_CHANGE: {
@@ -2096,7 +2153,17 @@ class GoatDuel {
         this.lp[m.player] = m.lp; this.emit("lp",{ player:m.player, value:m.lp }); break;
       case T.WIN:
         this.finished = true; this.emit("win",{ player:m.player, reason:m.reason }); break;
-      case T.SHUFFLE_DECK: this.emit("shuffle",{ player:m.player }); break;
+      case T.SHUFFLE_DECK:
+        this.emit("shuffle",{ player:m.player });
+        this.refrescarCimasDeck(this.deckReversed || this.convulsionAttiva());
+        break;
+      case T.REFRESH_DECK:
+        this.refrescarCimasDeck(this.deckReversed || this.convulsionAttiva());
+        break;
+      case T.SWAP_GRAVE_DECK:
+        this.emit("shuffle",{ player:m.player });
+        this.refrescarCimasDeck(this.deckReversed || this.convulsionAttiva());
+        break;
       /* Delinquent Duo, Graceful Charity y los descartes al azar hacen que el
          core baraje la mano. Si no reordenamos igual, nuestro espejo queda
          desfasado para siempre: era la causa de jugar la carta equivocada. */
@@ -5639,7 +5706,15 @@ function initView({ duel, db, names, me=0, images=true }){
   if(conoscenza){conoscenza.textContent="";conoscenza.classList.remove("on");}
   buildBoard();
   fitBoard();
-  if(!resizeConectado){ window.addEventListener("resize", ()=>{ fitBoard(); layoutAll(true); }); resizeConectado=true; }
+  if(!resizeConectado){
+    const riallinea=()=>requestAnimationFrame(()=>{ fitBoard(); layoutAll(true); });
+    window.addEventListener("resize",riallinea);
+    globalThis.visualViewport?.addEventListener("resize",riallinea);
+    globalThis.screen?.orientation?.addEventListener?.("change",riallinea);
+    document.addEventListener("fullscreenchange",riallinea);
+    document.addEventListener("webkitfullscreenchange",riallinea);
+    resizeConectado=true;
+  }
 }
 function setImages(on){ useImages=on; for(const [,el] of els) el.dataset.code=""; layoutAll(true); }
 
@@ -5763,7 +5838,7 @@ function classOf(code){
   if(d.type & T_TRAP) return "trap";
   return "";
 }
-function elFor(card){
+function elFor(card, visualCode=card.code){
   let el=els.get(card.uid);
   if(!el){
     el=document.createElement("div");
@@ -5774,10 +5849,12 @@ function elFor(card){
       <div class="face back"><img src="${CARD_BACK}" alt=""></div></div></div>`;
     layer.appendChild(el); els.set(card.uid, el); wire(el, card);
   }
-  if(el.dataset.code !== String(card.code)){
-    el.querySelector(".face.front").innerHTML = frontHTML(card.code);
-    el.className = "card "+classOf(card.code);
+  const visualKey=String(visualCode||card.code);
+  if(el.dataset.code !== String(card.code) || el.dataset.visualCode!==visualKey){
+    el.querySelector(".face.front").innerHTML = frontHTML(visualCode||card.code);
+    el.className = "card "+classOf(visualCode||card.code);
     el.dataset.code = card.code;
+    el.dataset.visualCode = visualKey;
   }
   return el;
 }
@@ -5868,7 +5945,12 @@ function layoutAll(instant){
     if(loc===L.HAND && p===ME) arr = manoOrdenada(arr.filter(Boolean));
     arr.forEach((card,idx)=>{
       if(!card) return; seen.add(card.uid);
-      const el=elFor(card);
+      /* Il mirror del Deck non conosce l'ordine segreto. Quando Convulsion
+         lo rende pubblico, sulla carta superiore dipingiamo il passcode
+         restituito dal core senza alterare l'oggetto usato dalle regole. */
+      const deckPubblica=loc===L.DECK && idx===arr.length-1
+        ? (deckConosciuti[p]||0) : 0;
+      const el=elFor(card,deckPubblica||card.code);
       marcarStats(el, card, loc);
       if(el.style.display==="none") el.style.display="";
       el.classList.remove("apilada");
@@ -5916,6 +5998,11 @@ function layoutAll(instant){
         const p2=zonePos(card.controller, ZKEY[loc], 0);
         const k = Math.min(desdeArriba, 3);
         x=p2.x - k*1.6; y=p2.y - k*2.2; tz=-k*0.5; z=10-k;
+        if(loc===L.DECK && desdeArriba===0 && deckPubblica){
+          /* Convulsion capovolge il Deck: la cima è a faccia in su e
+             sottosopra, come sul tavolo reale e nei simulatori moderni. */
+          rz=180; tz=5; z=38;
+        }
       } else {
         const [zk, zi] = casillaDe(loc, idx);
         const p2=zonePos(card.controller, zk, zi);
@@ -5932,7 +6019,8 @@ function layoutAll(instant){
          que una carta devuelta desde el cementerio (Magician of Faith)
          llegaba con posición 10 y se pintaba del revés en tu propia mano. */
       const hidden = loc===L.HAND ? !mine
-                   : (loc===L.DECK || loc===L.EXTRA) ? true
+                   : loc===L.DECK ? !deckPubblica
+                   : loc===L.EXTRA ? true
                    : isFD(card.position);
       /* Las cartas de un montón no capturan el ratón: así el hover y el clic
          llegan a la casilla, que es quien enseña el contador y abre el visor.
@@ -5940,6 +6028,7 @@ function layoutAll(instant){
       el.classList.toggle("enMonton",
         loc===L.DECK||loc===L.GRAVE||loc===L.EXTRA||loc===L.REMOVED);
       el.classList.toggle("facedown", (enPrevia || revelada) ? false : hidden);
+      el.classList.toggle("deckPubblica",!!deckPubblica);
       el.classList.toggle("colocando", enPrevia);
       el.classList.toggle("revelada", revelada);
       el.classList.toggle("in-hand", loc===L.HAND && mine && !enPrevia);
@@ -6316,26 +6405,28 @@ function contador(uid, cuantos, tipos=null){
   }else{ b.removeAttribute("title"); b.removeAttribute("aria-label"); }
 }
 function setDeckPreview(player,code){
-  const z=zoneEls[`${player}:deck:0`]; if(!z) return;
-  z.__preview?.remove(); z.__preview=null;
   deckConosciuti[player]=code||0;
-  if(code){
-    const b=document.createElement("div"); b.className="deckPreview";
-    b.textContent=`${player===ME?T("TUA PROSSIMA CARTA"):T("PROSSIMA DEL RIVALE")}: ${nameOf(code)}`;
-    z.appendChild(b); z.__preview=b;
+  const z=zoneEls[`${player}:deck:0`];
+  if(z){
+    z.__preview?.remove(); z.__preview=null; // pulisce le vecchie etichette
+    z.classList.toggle("deckGirato",!!code);
+    z.title=code ? `${player===ME?T("TUA PROSSIMA CARTA"):T("PROSSIMA DEL RIVALE")}: ${nameOf(code)}` : "";
   }
-  const p=document.getElementById("deckKnowledge"); if(!p)return;
+  const p=document.getElementById("deckKnowledge");
+  if(!p){ layoutAll(true); return; }
   p.textContent=""; const visibili=[ME,1-ME].filter(x=>deckConosciuti[x]);
-  p.classList.toggle("on",!!visibili.length); if(!visibili.length)return;
+  p.classList.toggle("on",!!visibili.length);
+  if(!visibili.length){ layoutAll(true); return; }
   const titolo=document.createElement("div");titolo.className="deckKnowTitle";
   titolo.textContent=T("Deck capovolti — carte superiori");p.appendChild(titolo);
   for(const x of visibili){
     const c=deckConosciuti[x],r=document.createElement("div");r.className="deckKnowRow";
-    const img=document.createElement("img");img.src=IMG_BASE+c+".jpg";img.alt=nameOf(c);
+    const img=document.createElement("img");img.src=IMG_BASE+artCode(c)+".jpg";img.alt=nameOf(c);
     const testo=document.createElement("div"),chi=document.createElement("small"),nome=document.createElement("b");
     chi.textContent=x===ME?T("La tua prossima pescata"):T("La prossima pescata del rivale");
     nome.textContent=nameOf(c);testo.append(chi,nome);r.append(img,testo);p.appendChild(r);
   }
+  layoutAll(true);
 }
 function setTurnCounters(items=[]){
   const z=document.getElementById("turnCounters"); if(!z) return;
@@ -8141,17 +8232,40 @@ for(const [id,dest] of [["irJugar","jugar"],["irOpciones","opciones"],["irBots",
    la pantalla. Pantalla completa las quita; y ya puestos, se intenta fijar
    la orientación horizontal, que es la única en la que cabe el tablero. */
 async function pantallaCompleta(){
+  const doc=document, el=doc.documentElement;
+  const attivo=doc.fullscreenElement || doc.webkitFullscreenElement;
+  const entra=el.requestFullscreen || el.webkitRequestFullscreen;
+  const esci=doc.exitFullscreen || doc.webkitExitFullscreen;
+  const standalone=globalThis.matchMedia?.("(display-mode: fullscreen)")?.matches
+    || globalThis.matchMedia?.("(display-mode: standalone)")?.matches
+    || globalThis.navigator?.standalone===true;
   try{
-    const el = document.documentElement;
-    if(!document.fullscreenElement && el.requestFullscreen)
-      await el.requestFullscreen({ navigationUI:"hide" });
-    else if(document.fullscreenElement && document.exitFullscreen)
-      await document.exitFullscreen();
-  }catch(e){}
+    if(!attivo && entra){
+      /* WebKit meno recente non accetta l'oggetto delle opzioni. */
+      try{ await entra.call(el,{navigationUI:"hide"}); }
+      catch(e){ await entra.call(el); }
+    }else if(attivo && esci){
+      await esci.call(doc);
+      return;
+    }else if(!standalone){
+      /* Safari su iPhone non offre ancora il fullscreen per elementi HTML.
+         Non fingiamo che il pulsante abbia funzionato: spieghiamo il solo
+         percorso davvero senza barre, cioè l'installazione Home Screen. */
+      const msg="iPhone: in Safari usa Condividi → Aggiungi alla schermata Home, poi apri il gioco dalla nuova icona.";
+      V.toast(msg);
+      const nota=document.querySelector("#rotar p"); if(nota) nota.textContent=msg+" Poi gira il telefono in orizzontale.";
+    }
+  }catch(e){ V.toast("Il browser ha rifiutato lo schermo intero. Riprova toccando il pulsante."); }
+  /* Su Android il lock riesce dopo l'ingresso in fullscreen. Su iPhone può
+     essere rifiutato: il layout resta comunque corretto dopo la rotazione
+     manuale e, come web app, parte già in landscape dal manifest. */
   try{ await globalThis.screen?.orientation?.lock?.("landscape"); }catch(e){}
+  setTimeout(()=>{ V.fitBoard?.(); V.layoutAll?.(true); },120);
 }
 const bp=document.getElementById("btnPantalla");
 if(bp) bp.onclick=()=>pantallaCompleta();
+const bpr=document.getElementById("btnPantallaRotar");
+if(bpr) bpr.onclick=()=>pantallaCompleta();
 const ba=document.getElementById("btnAudio");
 if(ba) ba.onclick=()=>{ cfg.audioMute=!cfg.audioMute; guardarCfg(); sincronizarAudio(); };
 function collegaVolumeGioco(id,campo,idVal){
