@@ -3,7 +3,7 @@
 A playable Yu-Gi-Oh! **Goat Format** (April 2005) simulator that runs in a single
 HTML file. No install, no account, no server — download it, double-click it, play.
 
-**[▶ Play in your browser]([https://cecco2003.github.io/goat-format-simulator/](https://cecco2003.github.io/goat-format-simulator/goat-simulador.html))**
+**[▶ Play in your browser](https://cecco2003.github.io/goat-format-simulator/goat-simulador.html)**
 
 The rules are not hand-written. The simulator runs **ocgcore**, the same rules
 engine EDOPro uses, compiled to WebAssembly and started in `MODE_GOAT`, so 2005
