@@ -95,7 +95,7 @@ input:focus,select:focus{outline:none;border-color:var(--gold)}
 .btn.volver:hover{background:#1d2a45;color:#fff}
 </style></head><body>
 <div id="top">
-  <a class="btn volver" href="goat-simulador.html">← Menú principal</a>
+  <a class="btn volver" id="volverMenu" href="./">← Menú principal</a>
   <span class="marca">Deck Builder</span>
   <input id="nombreMazo" placeholder="Nombre del mazo">
   <span style="flex:1"></span>
@@ -376,6 +376,8 @@ const EN = {
   "Hay cartas que no son legales en Goat y no funcionarían":
     "Some cards are not legal in Goat and would do nothing",
   "Mis mazos":"My decks", "Buscar":"Search",
+  "Pool provisional: se muestran todas las cartas de la base de datos. Falta la lista oficial de Goat para restringirlo — mira el README.":
+    "Temporary pool: all cards in the database are shown. The official Goat list is still needed to restrict it — see the README.",
 
   /* ── zonas y tipos (para los textos de las cartas) ── */
   "Carta Mágica":"Spell Card", "Carta de Trampa":"Trap Card",
@@ -450,10 +452,11 @@ function idioma(){ return idiomaActual; }
 function T(s){
   if(idiomaActual === "es" || s == null) return s;
   const t = String(s);
-  const exacto = EN[t.trim()];
-  if(exacto !== undefined) return t.replace(t.trim(), exacto);
+  const limpio=t.trim(), normalizado=limpio.replace(/\s+/g," ");
+  const exacto = EN[limpio] ?? EN[normalizado];
+  if(exacto !== undefined) return t.replace(limpio, exacto);
   for(const [re, fn] of REGLAS){
-    const m = re.exec(t.trim());
+    const m = re.exec(normalizado);
     if(m) return fn(m);
   }
   if(globalThis.__T_FUGAS__ && t.trim()) globalThis.__T_FUGAS__.add(t.trim());
@@ -815,7 +818,30 @@ function pintarSlots(){
 }
 
 /* ── arranque ── */
+function configurarVolverAlMenu(){
+  const a=$("#volverMenu"); if(!a) return;
+  /* Su GitHub Pages il simulatore può chiamarsi `index.html`, mentre nel
+     fork originale si chiama `goat-simulador.html`. Il vecchio link fisso
+     mandava quindi a un file inesistente o a una versione vecchia. Il
+     simulatore passa il proprio nome; se il builder viene aperto
+     direttamente, `./` torna comunque alla home del sito Pages. */
+  const valido = nombre => /^(?:index|goat-simulador|goat-simulador-migliorato)\.html$/i.test(nombre??"");
+  const pedido = new URLSearchParams(location.search).get("return");
+  let destino = valido(pedido) ? pedido : null;
+  if(!destino && document.referrer){
+    try{
+      const r=new URL(document.referrer);
+      const nombre=decodeURIComponent(r.pathname.split("/").pop()||"");
+      if(r.origin===location.origin && valido(nombre)) destino=nombre;
+    }catch(e){}
+  }
+  a.href=destino || "./";
+  /* Salva anche la bozza corrente prima di lasciare la pagina: il click
+     non deve dipendere dall'ultimo evento digitato nel nome del mazzo. */
+  a.addEventListener("click", guardar);
+}
 function init(){
+  configurarVolverAlMenu();
   $("#buscar").oninput=e=>{ filtro.texto=e.target.value; pintarResultados(); };
   $("#fTipo").onchange=e=>{ filtro.tipo=e.target.value; pintarResultados(); };
   $("#fAtr").onchange=e=>{ filtro.atributo=+e.target.value; pintarResultados(); };
