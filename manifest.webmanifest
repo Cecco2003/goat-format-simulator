@@ -1,7 +1,7 @@
 {
   "name": "GOAT Format Simulator",
   "short_name": "GOAT Simulator",
-  "start_url": "./goat-simulador-migliorato.html",
+  "start_url": "./goat-simulador.html",
   "scope": "./",
   "display": "fullscreen",
   "display_override": ["fullscreen", "standalone"],
