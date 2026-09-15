@@ -95,7 +95,7 @@ input:focus,select:focus{outline:none;border-color:var(--gold)}
 .btn.volver:hover{background:#1d2a45;color:#fff}
 </style></head><body>
 <div id="top">
-  <a class="btn volver" id="volverMenu" href="./">← Menú principal</a>
+  <a class="btn volver" id="volverMenu" href="goat-simulador.html">← Menú principal</a>
   <span class="marca">Deck Builder</span>
   <input id="nombreMazo" placeholder="Nombre del mazo">
   <span style="flex:1"></span>
@@ -821,21 +821,13 @@ function pintarSlots(){
 function configurarVolverAlMenu(){
   const a=$("#volverMenu"); if(!a) return;
   /* Su GitHub Pages il simulatore può chiamarsi `index.html`, mentre nel
-     fork originale si chiama `goat-simulador.html`. Il vecchio link fisso
-     mandava quindi a un file inesistente o a una versione vecchia. Il
-     simulatore passa il proprio nome; se il builder viene aperto
-     direttamente, `./` torna comunque alla home del sito Pages. */
+     fork originale si chiama `goat-simulador.html`. Il simulatore passa il
+     proprio nome. Se il builder viene aperto direttamente, il ripiego DEVE
+     essere l'HTML del gioco e non `./`: in alcune pubblicazioni la radice
+     contiene una pagina che rimanda alla repository GitHub. */
   const valido = nombre => /^(?:index|goat-simulador|goat-simulador-migliorato)\.html$/i.test(nombre??"");
   const pedido = new URLSearchParams(location.search).get("return");
-  let destino = valido(pedido) ? pedido : null;
-  if(!destino && document.referrer){
-    try{
-      const r=new URL(document.referrer);
-      const nombre=decodeURIComponent(r.pathname.split("/").pop()||"");
-      if(r.origin===location.origin && valido(nombre)) destino=nombre;
-    }catch(e){}
-  }
-  a.href=destino || "./";
+  a.href=valido(pedido) ? pedido : "goat-simulador.html";
   /* Salva anche la bozza corrente prima di lasciare la pagina: il click
      non deve dipendere dall'ultimo evento digitato nel nome del mazzo. */
   a.addEventListener("click", guardar);
