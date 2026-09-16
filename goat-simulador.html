@@ -5786,24 +5786,37 @@ function crearCerebro({ X, duel, db, names, nivel="normal", yo=1, log, lastre:la
         return { type:R.SELECT_SUM, indicies:mejor };
       }
       case T.SELECT_OPTION: {
-        /* Reversal Quiz: 70/71/72 = Mostro/Magia/Trappola. Se Convulsion
-           rende pubblica la cima la scelta è certa; altrimenti il bot usa
-           la composizione reale del proprio Deck restante, non un indice
-           casuale. */
+        /* Scelta "Mostro/Magia/Trappola". Arriva in DUE codifiche: Reversal
+           Quiz usa i tre valori del nucleo 70/71/72; le carte che usano le
+           costanti DECLTYPE di ocgcore mandano 1/2/4. In entrambi i casi la
+           risposta è l'INDICE dell'opzione (la posizione nell'array), non il
+           valore. Se Convulsion rende pubblica la cima la scelta è certa;
+           altrimenti il bot usa la composizione reale del proprio Deck
+           rimanente, non un indice casuale. */
         const valore=o=>typeof o==="bigint" ? Number(o&0xffffffffn) : Number(o);
         const valori=(m.options??[]).map(valore);
-        if(valori.length===3 && valori[0]===70 && valori[1]===71 && valori[2]===72){
+        /* Nero su la codifica: in ognuna delle due mappe i tre valori di
+           tipo esistono in ordine standard (70/71/72 o 1/2/4). */
+        const validaTipi=v=> v.length===3 &&
+          ([70,71,72].every(x=>v.includes(x)) || [1,2,4].every(x=>v.includes(x)));
+        if(validaTipi(valori)){
+          /* valore → tipo (0=Mostro, 1=Magia, 2=Trappola) in entrambe le
+             codifiche; la risposta al motore è l'INDICE, cioè la posizione
+             dell'opzione scelta, per cui riconvertiamo tipo→indice. */
+          const valore_a_tipo={1:0,2:1,4:2,70:0,71:1,72:2};
+          const indiceDi=tipo=>valori.findIndex(v=>valore_a_tipo[v]===tipo);
           const tipoIndice=d=>d?.type&0x1?0:d?.type&0x2?1:d?.type&0x4?2:null;
           const cima=duel.deckVisible?.[yo]??0, certo=tipoIndice(db.get(cima));
-          if(certo!=null){ traza(`Reversal Quiz: vede la cima e dichiara ${["Mostro","Magia","Trappola"][certo]}`);
-            return {type:R.SELECT_OPTION,index:certo}; }
+          const nomeTipo=i=>["Mostro","Magia","Trappola"][i];
+          if(certo!=null){ traza(`dichiara il tipo della carta: ${nomeTipo(certo)}`);
+            return {type:R.SELECT_OPTION,index:indiceDi(certo)}; }
           const v2=vistaDe(duel,yo,db,names), conteggi=[0,0,0];
           for(const [code,copie] of (v2.mazo??new Map())){
             const i=tipoIndice(db.get(code)); if(i!=null)conteggi[i]+=copie;
           }
           const probabile=conteggi.indexOf(Math.max(...conteggi));
-          traza(`Reversal Quiz: dichiara il tipo più probabile (${conteggi.join("/")})`);
-          return {type:R.SELECT_OPTION,index:Math.max(0,probabile)};
+          traza(`dichiara il tipo più probabile (${conteggi.join("/")})`);
+          return {type:R.SELECT_OPTION,index:indiceDi(Math.max(0,probabile))};
         }
         return null;
       }
@@ -7719,16 +7732,23 @@ function ask(m){
         {label:"No",run:()=>send({type:R.SELECT_YESNO,yes:false})}]);
     }
     case MT.SELECT_OPTION: {
-      /* Reversal Quiz usa i tre identificatori generici di ocgcore:
-         70=Mostro, 71=Magia, 72=Trappola. Prima buttavamo via il valore
-         ricevuto e mostravamo soltanto "Opzione 1/2/3", rendendo la carta
+      /* La scelta "Mostro/Magia/Trappola" arriva in DUE codifiche diverse
+         secondo la carta. Reversal Quiz (scarta tutto e scambia i LP) usa
+         i tre valori 70/71/72 del nucleo; Vampire Lady e Ordeal of a
+         Traveler usano le costanti DECLTYPE (1=Mostro, 2=Magia, 4=Trappola).
+         Entrambe vanno mostrate con i tre nomi: prima buttavamo via i
+         valori e compariva solo "Opzione 1/2/3", rendendo la carta
          praticamente ingiocabile. Gli altri effetti conservano il
          fallback numerato finché non hanno un'etichetta conosciuta. */
       const valore=o=>typeof o==="bigint" ? Number(o & 0xffffffffn) : Number(o);
-      const etichette={70:"Mostro",71:"Magia",72:"Trappola"};
+      const etichette={1:"Mostro",2:"Magia",4:"Trappola",
+                       70:"Mostro",71:"Magia",72:"Trappola"};
       const valori=(m.options||[]).map(valore);
-      const dichiaraTipo=valori.length===3 && valori.every(x=>etichette[x]);
-      return panel(dichiaraTipo ? "Dichiara il tipo della prossima carta" : "Scegli un'opzione",
+      /* tre valori che sono tutti dichiarazioni di tipo (in una delle due
+         codifiche) → finestra di scelta Mostro/Magia/Trappola */
+      const dichiaraTipo=valori.length===3
+        && ([1,2,4].every(x=>valori.includes(x)) || [70,71,72].every(x=>valori.includes(x)));
+      return panel(dichiaraTipo ? "Dichiara il tipo di carta" : "Scegli un'opzione",
         (m.options||[]).map((o,i)=>({
           label:etichette[valore(o)] ?? `Opzione ${i+1}`,
           primary:dichiaraTipo,
