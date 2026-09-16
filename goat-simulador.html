@@ -1058,6 +1058,21 @@ body.sinCarril #pestana{display:block}
   #controles{right:max(12px,env(safe-area-inset-right));bottom:max(12px,env(safe-area-inset-bottom));width:118px}
   #controles button{min-height:48px;font-size:11px}
 }
+/* Táctil: adiós al scroll anidado en las pantallas previas. Galerías y
+   recuadros de mazo traían su propio overflow y robaban el gesto a la caja
+   del menú: al arrastrar encima de un mazo se movía el recuadro, no la
+   página, y en un móvil era imposible bajar hasta el botón. Ahora todo el
+   contenido fluye y la caja del menú hace un único scroll de página. */
+@media (pointer:coarse){
+  #menu .preCols{grid-template-columns:1fr 1fr}
+  #menu .preCol{max-height:none;overflow:visible}
+  #menu .preCol h3{position:static}
+  #menu .preGrid{grid-template-columns:repeat(auto-fill,minmax(50px,1fr))}
+  #menu .galeria{max-height:none;overflow:visible}
+  #menu #mAvatares{max-height:none;overflow:visible}
+  #menu #mBots{max-height:none;overflow:visible}
+  #menu .mcaja{padding-bottom:max(26px,env(safe-area-inset-bottom))}
+}
 @media (orientation:portrait) and (pointer:coarse){
   #rotar{position:fixed;inset:0;z-index:900;display:grid;place-items:center;
     background:radial-gradient(700px 500px at 50% 45%,#16203a,#05070d);text-align:center;padding:28px}
@@ -6151,7 +6166,12 @@ function fitBoard(){
   const tactil = matchMedia("(pointer:coarse)").matches;
   const tablet = tactil && matchMedia("(orientation:landscape) and (min-height:561px)").matches;
   const CH = CW*1.46;
-  const cuelga = CH*(tablet ? 0.95 : tactil ? 0.84 : 0.80)*esc;
+  /* En táctil tu mano empieza justo bajo la última fila (hueco 0.03*CH) y
+     ocupa todo su alto: reservamos CH*(0.03+esc). En escritorio asoma un
+     trozo dentro del borde inferior y cuelga el resto: CH*((0.16+0.16*esc)
+     +esc). Antes se reservaba de menos y en el móvil la mano se salía por
+     abajo, tapando el campo. */
+  const cuelga = CH*((tactil ? 0.03 : (0.16+0.16*esc)) + esc);
   const sobresaleRival = CH*0.58*escRival;
   /* In desktop non superiamo la misura grafica originale. Su tablet,
      invece, il vecchio limite a 1 lasciava inutilizzata quasi metà
@@ -6174,7 +6194,6 @@ function layoutAll(instant){
   const ESC_MIA   = parseFloat(raiz.getPropertyValue("--mano-mia"))   || 1;
   const ESC_RIVAL = parseFloat(raiz.getPropertyValue("--mano-rival")) || 1;
   const TATTILE = matchMedia("(pointer:coarse)").matches;
-  const TABLET = TATTILE && matchMedia("(orientation:landscape) and (min-height:561px)").matches;
   for(const p of [0,1]) for(const loc of [L.DECK,L.HAND,L.GRAVE,L.REMOVED,L.EXTRA,L.MZONE,L.SZONE,L.FZONE]){
     let arr=DUEL.zones[p][loc]; if(!arr) continue;
     if(loc===L.HAND && p===ME) arr = manoOrdenada(arr.filter(Boolean));
@@ -6220,7 +6239,7 @@ function layoutAll(instant){
         /* Tu mano se dibuja más grande y asomando más; la del rival, más
            pequeña y apenas asomando: es información que no puedes usar. */
         y = mine ? (TATTILE
-                      ? grid.offsetHeight - CH*(TABLET ? 0.03+0.03*sc : 0.10+0.06*sc) + arc
+                      ? grid.offsetHeight + CH*0.03 + arc
                       : grid.offsetHeight - CH*(0.16+0.16*sc) + arc)
                  : -CH*(0.30+0.30*sc) - arc;
         rz = (mine?1:-1)*off*2.6; rx=-TILT; tz=mine?90:110; z=50+idx;
