@@ -998,7 +998,13 @@ body.sinCarril #pestana{display:block}
 #ajustesJuego{position:fixed;inset:0;z-index:470;display:none;align-items:flex-start;justify-content:flex-end;padding:54px 14px;background:rgba(3,6,14,.45)}
 #ajustesJuego .ajCaja{width:340px;max-width:90vw;padding:18px;background:linear-gradient(180deg,#14223b,#091224);border:1px solid #607aa5;box-shadow:0 18px 55px #000;border-radius:10px}
 #ajustesJuego h3{margin:0 0 12px;color:#f0cc69;letter-spacing:.08em}.ajCerrar{width:100%;margin-top:10px;padding:8px;background:#1b2c48;border:1px solid #607aa5;color:#fff;cursor:pointer}
-.preTop{display:flex;gap:8px;align-items:center;justify-content:center;margin:8px 0 14px}.preScore{color:#f0cc69;font-weight:700}.preCols{display:grid;grid-template-columns:1fr 1fr;gap:10px}.preCol{min-height:150px;max-height:260px;overflow:auto;padding:8px;border:1px solid #314363;background:rgba(5,11,23,.7)}.preCol h3{position:sticky;top:-8px;margin:-8px -8px 7px;padding:8px;background:#101b30;color:#f0cc69;font-size:12px;z-index:2}.preCarta{display:flex;justify-content:space-between;gap:8px;width:100%;margin:3px 0;padding:5px 7px;border:1px solid #304566;background:#14223a;color:#dbe8fb;text-align:left;cursor:pointer;font:inherit;font-size:10px}.preCarta:hover{border-color:#d2a83c}.preBusca{width:100%;box-sizing:border-box;margin:9px 0;padding:8px;border:1px solid #536a91;background:#101b30;color:#fff}.prePool{max-height:110px;overflow:auto}.preNota{min-height:18px;margin:8px 0;color:#9fb0ca;font-size:11px}.prePrimer{display:none;margin:10px 0;padding:10px;border:1px solid rgba(212,173,69,.4);background:rgba(22,34,57,.9)}.prePrimer.on{display:block}
+.preTop{display:flex;gap:8px;align-items:center;justify-content:center;margin:8px 0 14px}.preScore{color:#f0cc69;font-weight:700}.preCols{display:grid;grid-template-columns:minmax(0,3fr) minmax(180px,1fr);gap:10px}.preCol{min-height:180px;max-height:min(48vh,430px);overflow:auto;padding:8px;border:1px solid #314363;background:rgba(5,11,23,.7)}.preCol h3{position:sticky;top:-8px;margin:-8px -8px 7px;padding:8px;background:#101b30;color:#f0cc69;font-size:12px;z-index:2}.preGrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(66px,1fr));gap:7px;align-content:start}.preCard{position:relative;min-width:0;aspect-ratio:59/86;padding:0;overflow:hidden;border:2px solid #304566;border-radius:4px;background:#101b30;color:#fff;cursor:pointer;box-shadow:0 4px 10px rgba(0,0,0,.5);transition:.14s ease}.preCard:hover,.preCard:focus-visible{z-index:1;border-color:#f0cc69;transform:translateY(-2px) scale(1.035);box-shadow:0 7px 18px rgba(0,0,0,.75),0 0 14px rgba(240,204,105,.28);outline:0}.preCard img{display:block;width:100%;height:100%;object-fit:cover}.preCard .preFallback{position:absolute;inset:0;display:grid;place-items:center;padding:6px;background:linear-gradient(155deg,#314c76,#111b2c);font-size:9px;line-height:1.25;text-align:center}.preCard img+.preFallback{z-index:-1}.preCard::after{content:attr(data-azione);position:absolute;inset:auto 2px 2px;padding:3px 2px;background:rgba(3,8,17,.86);color:#ffe49a;font-size:8px;font-weight:800;line-height:1;text-align:center;text-transform:uppercase;opacity:0;transition:.14s}.preCard:hover::after,.preCard:focus-visible::after{opacity:1}.preCarta{display:flex;justify-content:space-between;gap:8px;width:100%;margin:3px 0;padding:5px 7px;border:1px solid #304566;background:#14223a;color:#dbe8fb;text-align:left;cursor:pointer;font:inherit;font-size:10px}.preCarta:hover{border-color:#d2a83c}.preBusca{width:100%;box-sizing:border-box;margin:9px 0;padding:8px;border:1px solid #536a91;background:#101b30;color:#fff}.prePool{max-height:110px;overflow:auto}.preNota{min-height:18px;margin:8px 0;color:#9fb0ca;font-size:11px}.preNota.errore{color:#ff9b84;font-weight:700}.prePrimer{display:none;margin:10px 0;padding:10px;border:1px solid rgba(212,173,69,.4);background:rgba(22,34,57,.9)}.prePrimer.on{display:block}
+/* Le regole sono ripetute qui per tenere il fallback dietro all'immagine
+   anche quando il browser non riesce a scaricare una copertina. */
+.preCard img{position:absolute;inset:0;z-index:1}
+.preCard .preFallback,.preCard img+.preFallback{z-index:0}
+.preCard::after{z-index:2}
+@media(max-width:720px){.preCols{grid-template-columns:1fr 1fr}.preCol{max-height:39vh;padding:5px}.preGrid{grid-template-columns:repeat(auto-fill,minmax(52px,1fr));gap:4px}.preCard::after{display:none}}
 
 /* Convulsion of Nature: la carta pubblica è davvero la carta superiore del
    mucchio, non una minuscola etichetta separata dal Deck. */
@@ -1032,7 +1038,34 @@ body.sinCarril #pestana{display:block}
   .card::before{inset:-10px}.card.in-hand::before{inset:-10px -5px}
   .toast{max-width:70vw;line-height:1.35;text-align:center}
 }
-@media (orientation:portrait) and (max-width:900px){#rotar .rotarFs{display:inline-flex;align-items:center;justify-content:center}}
+/* Un tablet orizzontale non va trattato come un telefono ingrandito. Con
+   misure proprie il tappeto occupa davvero lo schermo, le carte restano
+   leggibili e la mano non invade le zone Magia/Trappola. */
+@media (pointer:coarse) and (orientation:landscape) and (min-height:561px){
+  :root{--cw:72px;--ch:calc(var(--cw)*1.46);--colw:104px;--gap:4px;
+    --tilt:4deg;--mano-mia:1.28;--mano-rival:.58;--carril:0px}
+  #topbar{min-height:42px;max-height:42px;padding:4px max(8px,env(safe-area-inset-right)) 4px max(8px,env(safe-area-inset-left))}
+  #topbar .brand{max-width:none;font-size:11px}
+  #topbar .btn{width:38px;height:34px;min-width:38px}
+  #side{display:none}
+  #stage{padding-top:0;padding-right:0;padding-bottom:max(8px,env(safe-area-inset-bottom))}
+  #grid{padding:9px}
+  #lpOpp{top:8px;left:max(8px,env(safe-area-inset-left))}
+  #lpMe{bottom:max(8px,env(safe-area-inset-bottom));left:max(8px,env(safe-area-inset-left))}
+  #prompt{top:48px;right:max(10px,env(safe-area-inset-right));bottom:auto;
+    width:min(30vw,300px);max-height:calc(100dvh - 110px)}
+  #prompt .popts .btn{min-height:48px}
+  #controles{right:max(12px,env(safe-area-inset-right));bottom:max(12px,env(safe-area-inset-bottom));width:118px}
+  #controles button{min-height:48px;font-size:11px}
+}
+@media (orientation:portrait) and (pointer:coarse){
+  #rotar{position:fixed;inset:0;z-index:900;display:grid;place-items:center;
+    background:radial-gradient(700px 500px at 50% 45%,#16203a,#05070d);text-align:center;padding:28px}
+  #rotar .ricon{font-size:52px;color:var(--gold);animation:girar 2.4s ease-in-out infinite}
+  #rotar h2{font-size:17px;letter-spacing:.18em;text-transform:uppercase;color:var(--gold);margin:16px 0 8px}
+  #rotar p{font-size:12.5px;color:#9db3d0;line-height:1.6;max-width:320px}
+  #rotar .rotarFs{display:inline-flex;align-items:center;justify-content:center}
+}
 @media (display-mode:fullscreen),(display-mode:standalone){body{height:100dvh}}
 </style></head>
 <body>
@@ -1713,7 +1746,12 @@ class GoatDuel {
        nel proprio Deck senza perdere di vista le carte temporaneamente
        controllate dall'avversario. */
     const c = { uid:++this.uid, code, owner, controller, location, sequence:0,
-                position:POS.FACEDOWN_DEFENSE, conocidaPublica:false };
+                position:POS.FACEDOWN_DEFENSE, conocidaPublica:false,
+                /* Copia separata del codice che è stato davvero mostrato.
+                   Alcuni messaggi del core riportano code=0 dopo che una
+                   carta viene rimessa coperta: la memoria del giocatore
+                   non deve sparire insieme al codice del messaggio. */
+                codiceVisto:null };
     this.cards.set(c.uid, c); return c;
   }
 
@@ -1984,11 +2022,13 @@ class GoatDuel {
            La memoria si perde invece quando rientra in una zona nascosta. */
         const vaAlCampo=[LOC.MZONE,LOC.SZONE].includes(to.location);
         const veniaDaZonaPublica=[LOC.MZONE,LOC.SZONE,LOC.GRAVE,LOC.REMOVED].includes(from.location);
-        if(vaAlCampo && !isFaceDown(card.position)) card.conocidaPublica=true;
+        if(vaAlCampo && !isFaceDown(card.position)){
+          card.conocidaPublica=true; card.codiceVisto=card.code;
+        }
         else if(vaAlCampo && isFaceDown(card.position) && !veniaDaZonaPublica)
-          card.conocidaPublica=false;
+          { card.conocidaPublica=false; card.codiceVisto=null; }
         else if([LOC.DECK,LOC.HAND,LOC.EXTRA].includes(to.location))
-          card.conocidaPublica=false;
+          { card.conocidaPublica=false; card.codiceVisto=null; }
         this.reindex(from.controller, from.location);
         this.emit("move",{ uid:card.uid, code:card.code, from:prev,
           to:{ controller:to.controller, location:to.location, sequence:to.sequence,
@@ -2001,7 +2041,9 @@ class GoatDuel {
       case T.POS_CHANGE: {
         const card = this.resolve(m, m.code);
         if(card){ card.position = m.position;
-          if(!isFaceDown(m.position)) card.conocidaPublica=true;
+          if(!isFaceDown(m.position)){
+            card.conocidaPublica=true; card.codiceVisto=card.code;
+          }
           this.emit("pos",{ uid:card.uid, faceDown:isFaceDown(m.position),
                             defense:isDefense(m.position) }); }
         break;
@@ -2070,7 +2112,9 @@ class GoatDuel {
         // posición nueva viaja dentro de este mismo mensaje
         if(card && m.position != null){
           card.position = m.position;
-          if(!isFaceDown(m.position)) card.conocidaPublica=true;
+          if(!isFaceDown(m.position)){
+            card.conocidaPublica=true; card.codiceVisto=card.code;
+          }
         }
         const kind = m.type===T.SUMMONING ? "normal"
                    : m.type===T.SPSUMMONING ? "special" : "flip";
@@ -2093,7 +2137,7 @@ class GoatDuel {
       case T.BATTLE: {
         const a=this.at(m.card.controller,m.card.location,m.card.sequence);
         const t=m.target?this.at(m.target.controller,m.target.location,m.target.sequence):null;
-        if(t) t.conocidaPublica=true;
+        if(t){ t.conocidaPublica=true; t.codiceVisto=t.code; }
         if(this.atacante && m.target){
           this.atacante.objetivo = {
             uid:t?.uid ?? null, code:t?.code ?? 0,
@@ -2200,7 +2244,7 @@ class GoatDuel {
           const card = this.resolve(c, c.code);
           if(!card) continue;
           if(c.code) card.code = c.code;
-          card.conocidaPublica=true;
+          card.conocidaPublica=true; card.codiceVisto=card.code;
           vistas.push(card);
         }
         this.emit("revelar", { player:m.player, uids:vistas.map(c=>c.uid),
@@ -2536,7 +2580,8 @@ const CARTAS = {
   "Emissary of the Afterlife":{ rol:"floater", valor:1.0 },
   "Morphing Jar":        { rol:"flip", valor:1.3, colocarPreferente:true },
   "D.D. Assailant":      { rol:"trade", valor:1.0, peligroso:true },
-  "Blade Knight":        { rol:"beater", valor:1.2 },
+  "Blade Knight":        { rol:"beater", valor:1.2, neutralizzaFlipSolo:true,
+                            nota:"Se è l'unico mostro, nega i FLIP che distrugge in battaglia" },
   "Don Zaloog":          { rol:"beater", valor:1.3 },
 
   // ── Quema y control de largo plazo ──────────────────────────────
@@ -2650,9 +2695,31 @@ function conocer(nombre, datos){
   if(k) return k;
   const t = datos?.type ?? 0;
   if(t & 0x1){        // monstruo
-    const atk = datos.attack ?? 0;
+    const atk = datos.attack ?? 0, def = datos.defense ?? 0;
     // 0x4000 es TYPE_TOKEN: una ficha no es una carta, perderla no cuesta nada
     if(t & 0x4000) return { rol:"ficha", valor:0.05, esFicha:true, deducido:true };
+    /* PARCHE 2026-09: la tabla CARTAS solo tiene ~150 nombres escritos a
+       mano. Cualquier monstruo Goat-legal que no esté en ella caía aquí
+       abajo y se juzgaba SOLO por su ATK: un muro de 400/2000 sin listar
+       valía exactamente lo mismo que un vainilla de 400/400, y nunca podía
+       salir "flip" ni "muro" —esos roles no los pone esta rama—, así que
+       nada lo frenaba de invocarse boca arriba. Reportado en Reddit: el
+       bot metía monstruos flojos en ataque "porque tenían poco ATK para
+       ser peligrosos", justo al revés de lo que hay que hacer con ellos.
+       Dos añadidos, deducidos de la propia carta, no de una lista:
+         · el bit TYPE_FLIP (0x200000) ya se usaba para el freno de
+           invocar boca arriba (línea ~4141) pero nunca alimentaba el
+           ROL de la carta; sin tabla, esFlip daba true y sin embargo
+           infoDe().rol seguía siendo "beater" o "chatarra".
+         · sin ser FLIP, una defensa muy por encima del ataque (mismo
+           corte que usa esMuro(): DEF>=1700 y 400 de margen) es un muro
+           por estadísticas, lo diga la tabla o no. */
+    if(t & 0x200000)
+      return { rol:"flip", valor: atk>=1900 ? 1.4 : atk>=1200 ? 1.1 : 0.9,
+               colocarPreferente:true, deducido:true };
+    if(def >= 1700 && def - atk >= 400)
+      return { rol:"muro", valor: def>=2000 ? 1.1 : 0.8,
+               colocarPreferente:true, deducido:true };
     return { rol: atk>=1900 ? "beater" : atk>=1500 ? "beater" : "chatarra",
              valor: atk>=2400 ? 1.6 : atk>=1700 ? 1.1 : 0.8, deducido:true };
   }
@@ -2679,10 +2746,11 @@ function vistaDe(duel, yo, db, names){
        lecita della partita. Una Spy già rivelata e poi rimessa coperta è
        ancora riconoscibile, senza mostrare nessuna carta mai vista. */
     const secreta = oculta && !c?.conocidaPublica;
+    const codicePubblico = c?.conocidaPublica ? (c.codiceVisto ?? c.code) : c?.code;
     return c && ({
-    uid:c.uid, code: secreta ? null : c.code,
-    nombre: secreta ? null : (names[c.code]?.name ?? null),
-    datos: secreta ? null : db.get(c.code) ?? null,
+    uid:c.uid, code: secreta ? null : codicePubblico,
+    nombre: secreta ? null : (names[codicePubblico]?.name ?? null),
+    datos: secreta ? null : db.get(codicePubblico) ?? null,
     /* ATK/DEF del TABLERO, no de la ficha de la carta. El adaptador se los
        pregunta al motor en cada decisión. Sin esto, Thousand-Eyes Restrict
        valía 0 para la IA aunque hubiera absorbido un 1900, y un monstruo
@@ -2778,6 +2846,46 @@ function esFlipReutilizable(c){
   if(!c?.nombre) return false;
   const i=infoDe(c), tipo=c.datos?.type ?? 0;
   return i.rol==="flip" || !!i.colocarPreferente || !!i.voltearVale || !!(tipo & 0x200000);
+}
+
+/* Modi realmente disponibili in GOAT per affrontare una carta coperta
+   senza regalarle il suo FLIP. Mystic Swordsman LV2 e Sasuke Samurai la
+   distruggono prima di scoprirla; Blade Knight invece non la distrugge
+   automaticamente, ma nega il FLIP se è l'unico mostro controllato e la
+   vince normalmente in battaglia. Tenere distinti i due casi evita sia
+   attacchi suicidi sia la prudenza eccessiva segnalata dal giocatore. */
+function rispostaAntiCoperta(attaccante, v, bersaglio=null){
+  const nome=canon(attaccante?.nombre);
+  if(["Mystic Swordsman LV2","Sasuke Samurai"].includes(nome))
+    return {tipo:"distrugge",sicura:true};
+  if(nome==="Blade Knight" && v.monstruos.length===1){
+    const passa=!bersaglio ? false
+      : bersaglio.nombre ? atk(attaccante)>def(bersaglio)
+      : atk(attaccante)>1600;
+    return {tipo:"negaFlip",sicura:passa};
+  }
+  return null;
+}
+
+function haUscitaPerCoperta(v, bersaglio=null){
+  const noc=[...v.mano,...v.backrow].some(c=>canon(c.nombre)==="Nobleman of Crossout");
+  if(noc) return true;
+  return v.monstruos.some(c=>!c.bocaAbajo && !c.defensa &&
+    rispostaAntiCoperta(c,v,bersaglio)?.sicura);
+}
+
+/* Solo i casi in cui, dalle informazioni pubbliche, è certo che il FLIP
+   avversario non otterrebbe nulla. Tutti gli altri restano considerati
+   utili: il bot non deve inventarsi il contenuto del Deck o della mano. */
+function flipAvversarioUtileOra(c,v){
+  const nome=canon(c?.nombre);
+  if(nome==="Magician of Faith")
+    return v.cementerioRival.some(x=>((x.datos?.type??0)&0x2)!==0);
+  if(["Old Vindictive Magician","Man-Eater Bug","Night Assailant",
+      "Gravekeeper's Guard","Hane-Hane"].includes(nome))
+    return v.monstruos.length>0;
+  if(nome==="Des Koala") return v.mano.length>0;
+  return true;
 }
 
 /* Ventaja de cartas: la métrica que decide las partidas de Goat. */
@@ -3852,7 +3960,11 @@ function crearCerebro({ X, duel, db, names, nivel="normal", yo=1, log, lastre:la
     const oculta = !!(l.position & 0x0a) && l.controller !== yo;
     const espejo = enCampo ? duel.at(l.controller, l.location, l.sequence) : null;
     const recordada = oculta && !!espejo?.conocidaPublica;
-    const code = recordada ? espejo.code : l.code;
+    /* Il core include il passcode anche nelle liste legali. Per una carta
+       coperta mai vista non è informazione disponibile al bot: usare
+       `l.code` qui significava barare; se invece è già stata rivelata si
+       usa la copia pubblica conservata nel mirror. */
+    const code = oculta ? (recordada ? (espejo.codiceVisto ?? espejo.code) : null) : l.code;
     return { code, nombre:names[code]?.name ?? "",
              datos:db.get(code) ?? null,
              /* Di una carta ricordata si conoscono i valori stampati, non
@@ -4580,11 +4692,19 @@ function crearCerebro({ X, duel, db, names, nivel="normal", yo=1, log, lastre:la
              reportó verlo tumbar su propio Dekoichi recién invocado. */
           if(nom==="Book of Moon" || nom==="Enemy Controller"){
             // ¿hay un monstruo suyo que me frena y cuya DEFENSA sí supero?
-            const desbloquea = v.monstruosRival.some(r=>!r.bocaAbajo && !esFlipReutilizable(r) &&
+            const desbloquea = v.monstruosRival.some(r=>!r.bocaAbajo &&
+              (!esFlipReutilizable(r) || haUscitaPerCoperta(v,r)) &&
               v.monstruos.some(y=>!y.bocaAbajo && !y.defensa &&
-                                  atk(y) <= atk(r) && atk(y) > def(r)));
-            p = desbloquea ? 2.8 : 0.05;
-            por += desbloquea ? " (lo tumbo y le paso por encima)"
+                (rispostaAntiCoperta(y,v,r)?.sicura ||
+                 (atk(y) <= atk(r) && atk(y) > def(r)))));
+            const haNoc=[...v.mano,...v.backrow]
+              .some(x=>canon(x.nombre)==="Nobleman of Crossout");
+            const preparaNoc=nom==="Book of Moon" && haNoc &&
+              v.monstruosRival.some(r=>!r.bocaAbajo &&
+                (esFlipReutilizable(r) || infoDe(r).prioritario || valorCarta(r)>=1.6));
+            p = preparaNoc ? 3.4 : desbloquea ? 2.8 : 0.05;
+            por += preparaNoc ? " (lo copro per neutralizzarlo con Nobleman)"
+                 : desbloquea ? " (lo tumbo y le paso por encima)"
                               : " (rápida: se guarda para el turno rival)";
           } else if(nom==="Tsukuyomi"){
             /* Tsukuyomi vuelve a tu mano cada End Phase, así que la
@@ -4914,6 +5034,28 @@ function crearCerebro({ X, duel, db, names, nivel="normal", yo=1, log, lastre:la
     }
 
     const rivales = v.monstruosRival;
+    /* CREENCIA SOBRE LO QUE HAY BOCA ABAJO, nunca invocada hasta ahora.
+       ganaCombate() da "gano" con solo atk(c)>1600 y ahí se quedaba: un
+       Magician of Faith reventado por un 1900 sigue recuperando su magia
+       ANTES de morir, y un Gravekeeper's Spy volteado busca otra Spy
+       aunque lo mates. La cuenta de ataque no ve nada de eso. Reportado
+       en Reddit: el bot no decide si conviene descubrir una tapada según
+       lo que arriesga ni según qué remoción tiene en la mano para
+       quitarla SIN voltearla (Nobleman of Crossout y Ring of Destruction
+       no activan el FLIP; atacar sí).
+       Esto NO es una probabilidad medida —no hay datos de torneo para
+       "cuántas Goat sets son flip"—, es una base de formato razonable,
+       declarada aquí para poder ajustarla, más lo único que es legítimo
+       saber: lo que el rival YA ha enseñado esta partida. Nunca mira
+       duel.decklist[rival] ni nada tapado; eso sería tramposo, que es
+       justo lo que vistaDe() existe para impedir. */
+    const PRIOR_VOLTEO = 0.30;
+    const volteoYaVisto = [...v.cementerioRival, ...v.desterradasRival]
+      .some(c => c.nombre && (infoDe(c).rol==="flip" || infoDe(c).colocarPreferente));
+    const probVolteo = Math.min(0.75, PRIOR_VOLTEO + (volteoYaVisto ? 0.25 : 0));
+    // tengo con qué quitarla sin darle el volteo: no hace falta arriesgar hoy
+    const tieneSnipe = tieneEnMano(v,"Nobleman of Crossout") || tieneEnMano(v,"Ring of Destruction");
+    const costeVolteo = probVolteo*1.6 + (tieneSnipe ? 0.4 : 0);
     const mirrorFuera = rivalUso(v,"Mirror Force");
     const attaccantiInCampo = v.monstruos.filter(c=>!c.bocaAbajo && !c.defensa);
     const attaccoTotale = attaccantiInCampo.reduce((s,c)=>s+atk(c),0);
@@ -4967,6 +5109,7 @@ function crearCerebro({ X, duel, db, names, nivel="normal", yo=1, log, lastre:la
       let mejor = -9;
       for(const r of rivales){
         const infoR = r.bocaAbajo ? {} : infoDe(r);
+        const antiCoperta = r.bocaAbajo ? rispostaAntiCoperta(c,v,r) : null;
         /* LA CUENTA DE ATAQUE NO SIEMPRE VALE. Es `IsMonsterDangerous` de
            WindBot y es lo que faltaba aquí:
              · Spirit Reaper no muere en combate por mucho ataque que le
@@ -4979,6 +5122,12 @@ function crearCerebro({ X, duel, db, names, nivel="normal", yo=1, log, lastre:la
            Para los muros ya están sus propios números; no hacen falta
            banderas. Marcarlos costó dos puntos de victoria medidos. */
         let mata = ganaCombate(c, r), muero = muereAtacando(c, r);
+        /* Questi attaccanti non entrano nel Damage Calculation contro una
+           carta coperta: il mostro viene distrutto prima di essere girato,
+           quindi né la DEF né l'effetto FLIP sono un rischio. */
+        if(antiCoperta?.tipo==="distrugge"){
+          mata=true; muero=false;
+        }
         if(exp("peligrosos") && infoR.inmuneCombate) mata = false;
         let s;
         if(exp("peligrosos") && infoR.peligroso && mata && !muero)
@@ -4987,6 +5136,19 @@ function crearCerebro({ X, duel, db, names, nivel="normal", yo=1, log, lastre:la
         else if(mata && muero)  s = 1.0 + (valorCarta(r) - valorCarta(c));  // cambio
         else if(!mata && !muero) s = -0.6;                  // no pasa nada: no ataques
         else                     s = -4;                    // suicidio
+        // mai vista: un attaccante anti-coperta riduce davvero il rischio
+        if(r.bocaAbajo && !r.nombre && !antiCoperta?.sicura) s -= costeVolteo;
+        /* Carta già rivelata e poi ricoperta: il bot la ricorda. Attaccare
+           una Spy/Dekoichi/Magician nota ricarica il suo vantaggio e non
+           può essere valutato come una normale rimozione. L'eccezione è
+           proprio un attaccante che la distrugge/nega senza far risolvere
+           il FLIP. */
+        if(r.bocaAbajo && r.nombre && esFlipReutilizable(r)){
+          if(antiCoperta?.sicura) s += antiCoperta.tipo==="distrugge" ? 3.2 : 2.4;
+          else s -= 2.8 + valorCarta(r)*2.5;
+        } else if(r.bocaAbajo && antiCoperta?.sicura){
+          s += antiCoperta.tipo==="distrugge" ? 2.4 : 1.4;
+        }
         /* Con plan defensivo, un cambio de golpes no compensa: cada
            monstruo que se queda en el campo es un turno más de vida. */
         if(exp("planBatalla") && PLAN.aguanta && mata && muero) s -= 2.0;
@@ -5095,15 +5257,22 @@ function crearCerebro({ X, duel, db, names, nivel="normal", yo=1, log, lastre:la
         } : null;
         const salva = !!(atacante&&atacado) && atk(atacante) >= poder(atacado)
                       && (valorCarta(atacado)>=1.1 || PLAN.esClave(atacado.nombre));
+        const puoPunireCoperta = haUscitaPerCoperta(v,objetivo);
+        const flipNonServe = esFlipReutilizable(objetivo)
+          && !flipAvversarioUtileOra(objetivo,v);
         /* Coprire un Flip dell'avversario gli restituisce il suo effetto.
            Si accetta solo per evitare un colpo letale o salvare davvero
-           una carta importante; mai come giocata generica di tempo. */
-        if(esFlipReutilizable(objetivo) && !letal && !salva) return -1;
+           una carta importante, oppure quando la carta coperta verrà
+           neutralizzata da NOC/Mystic Swordsman/Sasuke/Blade Knight. */
+        if(esFlipReutilizable(objetivo) && !letal && !salva
+           && !puoPunireCoperta && !flipNonServe) return -1;
         if(!atacante){
           const infObj=infoDe(objetivo);
-          if(!infObj.prioritario && !["lock","bomba"].includes(infObj.rol)) return -1;
+          if(!infObj.prioritario && !["lock","bomba"].includes(infObj.rol)
+             && !puoPunireCoperta) return -1;
         } else if(!letal && !salva && atk(atacante)<1700) return -1;
-        return letal ? 8 : salva ? 5 : (n>=2 ? 3.5 : 2);
+        return letal ? 8 : salva ? 5 : puoPunireCoperta ? 4.2
+             : flipNonServe ? 3.0 : (n>=2 ? 3.5 : 2);
       }
       /* ── ANTES QUE NINGUNA RAMA POR ROL ──
          `conocer()` inventa un rol para las cartas que no están en la
@@ -5238,9 +5407,15 @@ function crearCerebro({ X, duel, db, names, nivel="normal", yo=1, log, lastre:la
       const cand = lista.map((l,i)=>{
         const c = cartaDeLista(l);
         const objetivo = { ...c, defensa:!!(l.position & 0x0c), bocaAbajo:!!(l.position & 0x0a) };
-        return { i, objetivo, gano: ganaCombate(ultimoAtacante, objetivo),
-                 muero: muereAtacando(ultimoAtacante, objetivo),
-                 valor: valorCarta(objetivo) + poder(objetivo)/2000 };
+        const anti=objetivo.bocaAbajo ? rispostaAntiCoperta(ultimoAtacante,v,objetivo) : null;
+        return { i, objetivo,
+                 gano: anti?.tipo==="distrugge" || ganaCombate(ultimoAtacante, objetivo),
+                 muero: anti?.tipo==="distrugge" ? false
+                        : muereAtacando(ultimoAtacante, objetivo),
+                 valor: valorCarta(objetivo) + poder(objetivo)/2000
+                        + (anti?.sicura ? 3 : 0)
+                        - (objetivo.bocaAbajo && esFlipReutilizable(objetivo)
+                           && !anti?.sicura ? 6 : 0) };
       });
       const buenos = cand.filter(c=>c.gano && !c.muero).sort((a,b)=>b.valor-a.valor);
       let elegido = buenos[0] ?? cand.sort((a,b)=>poder(a.objetivo)-poder(b.objetivo))[0];
@@ -5259,12 +5434,24 @@ function crearCerebro({ X, duel, db, names, nivel="normal", yo=1, log, lastre:la
     if(m.type===T.SELECT_CARD && efectoActual==="Book of Moon"
        && lista.every(l=>l.location===4)){
       const uidAtacante=duel.atacante?.uid ?? null;
+      const difesoRaw=duel.atacante?.objetivo?.uid
+        ? duel.cards?.get(duel.atacante.objetivo.uid) : null;
+      const difesoImportante=difesoRaw ? (valorCarta({
+        nombre:names[difesoRaw.code]?.name??"",datos:db.get(difesoRaw.code)??null
+      })>=1.1 || PLAN.esClave(names[difesoRaw.code]?.name??"")) : false;
       const cand=lista.map((l,i)=>{
         const c=cartaDeLista(l), real=duel.resolve(l,l.code);
         let p=l.controller===yo ? -5 : 2 + poder(c)/1200;
         if(infoDe(c).prioritario) p+=2;
-        if(esFlipReutilizable(c) && l.controller!==yo) p-=7;
-        if(real?.uid===uidAtacante) p+=9;
+        const staAttaccando=real?.uid===uidAtacante;
+        const urgente=staAttaccando && (atk(c)>=v.lp.mio || difesoImportante);
+        if(esFlipReutilizable(c) && l.controller!==yo){
+          if(urgente) p-=1;                       // fermare il colpo viene prima
+          else if(haUscitaPerCoperta(v,c)) p+=1; // verrà neutralizzato coperto
+          else if(!flipAvversarioUtileOra(c,v)) p-=1; // il FLIP ora non ha bersagli/valore
+          else p-=20;                            // non ricaricare gratuitamente il FLIP
+        }
+        if(staAttaccando) p+=9;
         return {i,p,c};
       }).sort((a,b)=>b.p-a.p);
       traza(`Book of Moon sobre ${cand[0].c.nombre}`);
@@ -5598,6 +5785,28 @@ function crearCerebro({ X, duel, db, names, nivel="normal", yo=1, log, lastre:la
         traza(`tributa ${mejor.map(i=>names[m.selects[i].code]?.name).join(" + ")}`);
         return { type:R.SELECT_SUM, indicies:mejor };
       }
+      case T.SELECT_OPTION: {
+        /* Reversal Quiz: 70/71/72 = Mostro/Magia/Trappola. Se Convulsion
+           rende pubblica la cima la scelta è certa; altrimenti il bot usa
+           la composizione reale del proprio Deck restante, non un indice
+           casuale. */
+        const valore=o=>typeof o==="bigint" ? Number(o&0xffffffffn) : Number(o);
+        const valori=(m.options??[]).map(valore);
+        if(valori.length===3 && valori[0]===70 && valori[1]===71 && valori[2]===72){
+          const tipoIndice=d=>d?.type&0x1?0:d?.type&0x2?1:d?.type&0x4?2:null;
+          const cima=duel.deckVisible?.[yo]??0, certo=tipoIndice(db.get(cima));
+          if(certo!=null){ traza(`Reversal Quiz: vede la cima e dichiara ${["Mostro","Magia","Trappola"][certo]}`);
+            return {type:R.SELECT_OPTION,index:certo}; }
+          const v2=vistaDe(duel,yo,db,names), conteggi=[0,0,0];
+          for(const [code,copie] of (v2.mazo??new Map())){
+            const i=tipoIndice(db.get(code)); if(i!=null)conteggi[i]+=copie;
+          }
+          const probabile=conteggi.indexOf(Math.max(...conteggi));
+          traza(`Reversal Quiz: dichiara il tipo più probabile (${conteggi.join("/")})`);
+          return {type:R.SELECT_OPTION,index:Math.max(0,probabile)};
+        }
+        return null;
+      }
       case T.SELECT_POSITION:  return posicion(m);
       case T.SELECT_EFFECTYN:  return siNo(m, R.SELECT_EFFECTYN);
       case T.SELECT_YESNO:     return siNo(m, R.SELECT_YESNO);
@@ -5922,12 +6131,23 @@ function fitBoard(){
      inventado que en el móvil se quedaba corto y las cartas se salían por
      abajo: ahora se reserva EXACTAMENTE lo que asoma, que es alto de carta
      por el trozo visible. */
-  const CW = parseFloat(getComputedStyle(document.documentElement)
-                .getPropertyValue("--cw")) || 116;
-  const esc = parseFloat(getComputedStyle(document.documentElement)
-                .getPropertyValue("--mano-mia")) || 1;
-  const cuelga = CW*1.46*0.80*esc;
-  const k=Math.min(1, availW/w, availH/(h + cuelga));
+  const raiz = getComputedStyle(document.documentElement);
+  const CW = parseFloat(raiz.getPropertyValue("--cw")) || 116;
+  const esc = parseFloat(raiz.getPropertyValue("--mano-mia")) || 1;
+  const escRival = parseFloat(raiz.getPropertyValue("--mano-rival")) || 1;
+  const tactil = matchMedia("(pointer:coarse)").matches;
+  const tablet = tactil && matchMedia("(orientation:landscape) and (min-height:561px)").matches;
+  const CH = CW*1.46;
+  const cuelga = CH*(tablet ? 0.95 : tactil ? 0.84 : 0.80)*esc;
+  const sobresaleRival = CH*0.58*escRival;
+  /* In desktop non superiamo la misura grafica originale. Su tablet,
+     invece, il vecchio limite a 1 lasciava inutilizzata quasi metà
+     schermata: può crescere finché larghezza e altezza reali lo permettono. */
+  const maxScale = tablet ? 1.28 : tactil ? 1.06 : 1;
+  const k=Math.min(maxScale, availW/w, availH/(h + cuelga + sobresaleRival));
+  const libero=Math.max(0,availH-(h+cuelga+sobresaleRival)*k);
+  pl.style.transformOrigin="50% 0";
+  pl.style.marginTop=`${(sobresaleRival*k+libero/2).toFixed(1)}px`;
   pl.style.transform=`scale(${k.toFixed(3)}) rotateX(var(--tilt))`;
   requestAnimationFrame(colocarFases);
 }
@@ -5940,6 +6160,8 @@ function layoutAll(instant){
   const CW = parseFloat(raiz.getPropertyValue("--cw")) || 116;
   const ESC_MIA   = parseFloat(raiz.getPropertyValue("--mano-mia"))   || 1;
   const ESC_RIVAL = parseFloat(raiz.getPropertyValue("--mano-rival")) || 1;
+  const TATTILE = matchMedia("(pointer:coarse)").matches;
+  const TABLET = TATTILE && matchMedia("(orientation:landscape) and (min-height:561px)").matches;
   for(const p of [0,1]) for(const loc of [L.DECK,L.HAND,L.GRAVE,L.REMOVED,L.EXTRA,L.MZONE,L.SZONE,L.FZONE]){
     let arr=DUEL.zones[p][loc]; if(!arr) continue;
     if(loc===L.HAND && p===ME) arr = manoOrdenada(arr.filter(Boolean));
@@ -5984,7 +6206,9 @@ function layoutAll(instant){
         const arc=off*off*2.2;
         /* Tu mano se dibuja más grande y asomando más; la del rival, más
            pequeña y apenas asomando: es información que no puedes usar. */
-        y = mine ? grid.offsetHeight - CH*(0.16+0.16*sc) + arc
+        y = mine ? (TATTILE
+                      ? grid.offsetHeight - CH*(TABLET ? 0.03+0.03*sc : 0.10+0.06*sc) + arc
+                      : grid.offsetHeight - CH*(0.16+0.16*sc) + arc)
                  : -CH*(0.30+0.30*sc) - arc;
         rz = (mine?1:-1)*off*2.6; rx=-TILT; tz=mine?90:110; z=50+idx;
       } else if(loc===L.DECK||loc===L.GRAVE||loc===L.EXTRA||loc===L.REMOVED){
@@ -7494,9 +7718,24 @@ function ask(m){
         {label:"Sí",primary:true,run:()=>send({type:R.SELECT_YESNO,yes:true})},
         {label:"No",run:()=>send({type:R.SELECT_YESNO,yes:false})}]);
     }
-    case MT.SELECT_OPTION:
-      return panel("Elige una opción",(m.options||[]).map((o,i)=>
-        ({label:`Opción ${i+1}`,run:()=>send({type:R.SELECT_OPTION,index:i})})));
+    case MT.SELECT_OPTION: {
+      /* Reversal Quiz usa i tre identificatori generici di ocgcore:
+         70=Mostro, 71=Magia, 72=Trappola. Prima buttavamo via il valore
+         ricevuto e mostravamo soltanto "Opzione 1/2/3", rendendo la carta
+         praticamente ingiocabile. Gli altri effetti conservano il
+         fallback numerato finché non hanno un'etichetta conosciuta. */
+      const valore=o=>typeof o==="bigint" ? Number(o & 0xffffffffn) : Number(o);
+      const etichette={70:"Mostro",71:"Magia",72:"Trappola"};
+      const valori=(m.options||[]).map(valore);
+      const dichiaraTipo=valori.length===3 && valori.every(x=>etichette[x]);
+      return panel(dichiaraTipo ? "Dichiara il tipo della prossima carta" : "Scegli un'opzione",
+        (m.options||[]).map((o,i)=>({
+          label:etichette[valore(o)] ?? `Opzione ${i+1}`,
+          primary:dichiaraTipo,
+          run:()=>send({type:R.SELECT_OPTION,index:i},
+                       etichette[valore(o)] ? `dichiara ${etichette[valore(o)]}` : undefined)
+        })));
+    }
     case MT.SELECT_POSITION: {
       const P=OCG.OcgPosition,o=[];
       if(m.positions&P.FACEUP_ATTACK)   o.push({label:"Ataque",primary:true,run:()=>send({type:R.SELECT_POSITION,position:P.FACEUP_ATTACK})});
@@ -8320,35 +8559,58 @@ function scegliRivale(opzioni={},mio){
   if(id==="__azar__") return inclusi[(Math.random()*inclusi.length)|0];
   return buscaMazo(id)??inclusi[0];
 }
-function raggruppa(arr){
-  const m=new Map(); for(const c of arr)m.set(c,(m.get(c)||0)+1);
-  return [...m.entries()].sort((a,b)=>(NAMES[a[0]]?.name??"").localeCompare(NAMES[b[0]]?.name??""));
+function codiceArteSide(code){ return CARDS[code]?.alias || code; }
+function cartaSide(code,azione,onClick){
+  const nome=NAMES[code]?.name??("#"+code), b=document.createElement("button");
+  b.type="button"; b.className="preCard"; b.dataset.azione=azione;
+  b.title=`${nome} — ${azione}`; b.setAttribute("aria-label",`${nome}: ${azione}`);
+  b.innerHTML=`<span class="preFallback">${nome}</span>
+    <img src="https://images.ygoprodeck.com/images/cards/${codiceArteSide(code)}.jpg"
+         loading="lazy" alt="${nome.replaceAll('"','&quot;')}"
+         onerror="this.remove()">`;
+  b.onclick=onClick; return b;
 }
 function rigaSide(code,n,onClick){
   const b=document.createElement("button"); b.className="preCarta";
-  b.innerHTML=`<span>${NAMES[code]?.name??("#"+code)}</span><b>×${n}</b>`; b.onclick=onClick; return b;
+  b.innerHTML=`<span>${NAMES[code]?.name??("#"+code)}</span><b>×${n}</b>`;
+  b.onclick=onClick; return b;
 }
 function renderPre(){
   if(!MATCH)return;
   document.getElementById("preNomi").textContent=`${MATCH.mio.nome}  vs  ${MATCH.rivale.nome}`;
   document.getElementById("preScore").textContent=MATCH.gioco>1?`${MATCH.vinteTu}–${MATCH.vinteBot} · Game ${MATCH.gioco}`:"";
-  document.getElementById("preMainTit").textContent=`Main Deck · ${MATCH.mio.main.length}`;
+  document.getElementById("preMainTit").textContent=`Main Deck · ${MATCH.mio.main.length}/${MATCH.dimensioneMain}`;
   document.getElementById("preSideTit").textContent=`Side Deck · ${MATCH.mio.side.length}/15`;
-  const main=document.getElementById("preMain"),side=document.getElementById("preSide"); main.textContent="";side.textContent="";
-  for(const [c,n] of raggruppa(MATCH.mio.main)) main.appendChild(rigaSide(c,n,()=>{
-    if(MATCH.mio.main.length<=40){document.getElementById("preNota").textContent="Il Main Deck deve avere almeno 40 carte.";return;}
+  const main=document.getElementById("preMain"),side=document.getElementById("preSide");
+  main.className=side.className="preGrid"; main.textContent="";side.textContent="";
+  for(const c of MATCH.mio.main) main.appendChild(cartaSide(c,"Metti nel Side",()=>{
     if(MATCH.mio.side.length>=15){document.getElementById("preNota").textContent="Il Side Deck è già pieno (15).";return;}
     MATCH.mio.main.splice(MATCH.mio.main.indexOf(c),1);MATCH.mio.side.push(c);renderPre();
   }));
-  for(const [c,n] of raggruppa(MATCH.mio.side)) side.appendChild(rigaSide(c,n,()=>{
+  for(const c of MATCH.mio.side) side.appendChild(cartaSide(c,"Metti nel Main",()=>{
     if(MATCH.mio.main.length>=60)return;
     MATCH.mio.side.splice(MATCH.mio.side.indexOf(c),1);MATCH.mio.main.push(c);renderPre();
   }));
   grupo("mFormato",null,"formato");
   for(const b of document.getElementById("mFormato").children)b.disabled=MATCH.gioco>1;
   const primo=document.getElementById("prePrimer");primo.classList.toggle("on",MATCH.sceltaPartenza===true);
-  document.getElementById("preEmpezar").disabled=MATCH.sceltaPartenza===true&&typeof MATCH.prossimoIniziaTu!=="boolean";
-  cercaCarteSide();
+  const numeroCorretto=MATCH.mio.main.length===MATCH.dimensioneMain;
+  const partenzaScelta=!(MATCH.sceltaPartenza===true&&typeof MATCH.prossimoIniziaTu!=="boolean");
+  document.getElementById("preEmpezar").disabled=!numeroCorretto||!partenzaScelta;
+  const nota=document.getElementById("preNota");
+  nota.classList.toggle("errore",!numeroCorretto);
+  if(!numeroCorretto){
+    const differenza=MATCH.dimensioneMain-MATCH.mio.main.length;
+    nota.textContent=differenza>0
+      ? `Rimetti ${differenza} carta/e dal Side nel Main: il Main deve restare di ${MATCH.dimensioneMain} carte.`
+      : `Sposta ${-differenza} carta/e dal Main al Side: il Main deve restare di ${MATCH.dimensioneMain} carte.`;
+  } else if(MATCH.gioco>1){
+    nota.textContent=`Siding valido: il Main Deck contiene ancora ${MATCH.dimensioneMain} carte.`;
+  }
+  const ricerca=document.getElementById("preBusca"),pool=document.getElementById("prePool");
+  const soloScambio=MATCH.gioco>1;
+  ricerca.style.display=pool.style.display=soloScambio?"none":"";
+  if(!soloScambio)cercaCarteSide(); else pool.textContent="";
 }
 function cercaCarteSide(){
   if(!MATCH)return; const q=document.getElementById("preBusca").value.trim().toLowerCase();
@@ -8369,6 +8631,7 @@ function apriPrepartita(opzioni={}){
   if(mio.main.length<40){alert(`"${mio.nombre}" tiene ${mio.main.length} cartas; hacen falta 40.`);return;}
   const rivale=scegliRivale(opzioni,mio); PRE_OPZIONI=opzioni;
   MATCH={id:Date.now(),formato:Number(cfg.formato)||1,gioco:1,vinteTu:0,vinteBot:0,
+    dimensioneMain:mio.main.length,
     ultimoIniziaTu:null,sceltaPartenza:false,prossimoIniziaTu:undefined,
     mio:{nome:mio.nombre,main:[...mio.main],extra:[...mio.extra],side:[...(mio.side??[])]},
     rivale:{nome:rivale.nombre,main:[...rivale.main],extra:[...rivale.extra],side:[...(rivale.side??[])]}};
@@ -8385,6 +8648,11 @@ function preparaProssimoDuello(){
 }
 function lanciaPartitaMatch(){
   if(!MATCH)return;
+  if(MATCH.mio.main.length!==MATCH.dimensioneMain){
+    document.getElementById("preNota").textContent=
+      `Il Main Deck deve avere esattamente ${MATCH.dimensioneMain} carte prima di continuare.`;
+    renderPre(); return;
+  }
   MATCH.formato=Number(cfg.formato)||MATCH.formato;
   lanzarDuelo({...PRE_OPZIONI,_mio:MATCH.mio,_rivale:MATCH.rivale,
     empiezasTu:MATCH.prossimoIniziaTu,matchId:MATCH.id,numeroPartita:MATCH.gioco});
