@@ -41,6 +41,7 @@ export class GoatDuel {
     this.desyncs = 0;                // veces que el espejo no cuadró con el core
     this.cadena = [];                // eslabones vivos: {code, controller, uid}
     this.ataqueActual = null;         // {attackerUid,targetUid}: utile alla IA nelle finestre di risposta
+    this.ultimaBatalla = null;         // contesto post-danno per effetti opzionali come D.D. Warrior Lady
     this.deckBanishes = new Map();     // controller:code -> quante copie rimosse direttamente dal Deck nella catena
     this.finished = false;
   }
@@ -235,8 +236,13 @@ export class GoatDuel {
       }
       case T.BATTLE: {
         const a=this.at(m.card.controller,m.card.location,m.card.sequence);
-        this.ataqueActual=null;
         const t=m.target?this.at(m.target.controller,m.target.location,m.target.sequence):null;
+        this.ultimaBatalla={
+          attackerUid:a?.uid ?? null, targetUid:t?.uid ?? null,
+          attackerDestroyed:!!m.card.destroyed,
+          targetDestroyed:!!m.target?.destroyed
+        };
+        this.ataqueActual=null;
         /* El mensaje trae quién muere y con cuánto: con eso se puede medir
            si la IA ataca bien o se suicida (ver analizar.mjs). */
         this.emit("battle",{ uid:a?.uid, targetUid:t?.uid ?? null,
