@@ -1,0 +1,39 @@
+name: Rebuild published game
+
+on:
+  push:
+    branches: [ main ]
+    paths:
+      - "engine/browser/src/**"
+      - "engine/browser/out/**"
+      - "engine/data/**"
+      - ".github/workflows/build-game.yml"
+
+permissions:
+  contents: write
+
+jobs:
+  build-game:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - name: Build single-file game
+        working-directory: engine/browser
+        run: node build-html.mjs
+      - name: Publish generated HTML
+        run: cp engine/browser/out/goat.html goat-simulador.html
+      - name: Commit generated game if changed
+        shell: bash
+        run: |
+          if git diff --quiet -- goat-simulador.html; then
+            echo "Published game is already up to date."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add goat-simulador.html
+          git commit -m "Rebuild published game HTML"
+          git push
