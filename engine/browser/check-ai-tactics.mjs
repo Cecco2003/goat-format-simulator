@@ -26,6 +26,7 @@ const names = {
   4001:{name:"Sakuretsu Armor"},
   4002:{name:"Mirror Force"},
   5001:{name:"Gravekeeper's Spy"},
+  6001:{name:"Heavy Storm"},
 };
 const db = new Map([
   [1001,{type:1,attack:1900,defense:1400}],
@@ -37,6 +38,7 @@ const db = new Map([
   [4001,{type:0x4,attack:0,defense:0}],      // Normal Trap
   [4002,{type:0x4,attack:0,defense:0}],      // Normal Trap
   [5001,{type:0x200001,attack:1200,defense:2000}],
+  [6001,{type:0x2,attack:0,defense:0}],
 ]);
 
 function card(uid, code, controller, location, sequence, position=1){
@@ -164,6 +166,37 @@ const ok=(cond,msg)=>{ console.log(cond?"  ✓":"  ✗",msg); if(!cond) fallos++
   d.lp[1]=1600;
   const r2=brain(m,0);
   ok(r2.index===0,"Sakuretsu viene usata quando l'attacco sarebbe letale");
+}
+
+/* Heavy Storm non deve fare -X puro sul proprio campo. */
+{
+  const d=duelBase();
+  const hs=card(80,6001,1,2,0,1); put(d,hs);
+  put(d,card(81,4001,1,8,0,8));
+  put(d,card(82,4002,1,8,1,8));
+  const brain=crearCerebro({X,duel:d,db,names,nivel:"experto",yo:1});
+  const m={type:X.OcgMessageType.SELECT_IDLECMD,
+           activates:[{code:6001,controller:1,location:2,sequence:0}],
+           to_bp:true,to_ep:true};
+  const r=brain(m,0);
+  ok(r.action!==X.SelectIdleCMDAction.SELECT_ACTIVATE,
+     "Heavy Storm non viene usata quando distruggerebbe solo backrow propria");
+}
+
+/* Con due carte avversarie e nessuna propria, Heavy Storm deve invece essere
+   una delle priorità alte della Main Phase. */
+{
+  const d=duelBase();
+  const hs=card(90,6001,1,2,0,1); put(d,hs);
+  put(d,card(91,0,0,8,0,8));
+  put(d,card(92,0,0,8,1,8));
+  const brain=crearCerebro({X,duel:d,db,names,nivel:"experto",yo:1});
+  const m={type:X.OcgMessageType.SELECT_IDLECMD,
+           activates:[{code:6001,controller:1,location:2,sequence:0}],
+           to_bp:true,to_ep:true};
+  const r=brain(m,0);
+  ok(r.action===X.SelectIdleCMDAction.SELECT_ACTIVATE,
+     "Heavy Storm viene usata quando pulisce gratis due backrow avversarie");
 }
 
 if(fallos){ console.error("\n"+fallos+" regressione/i fallita/e"); process.exit(1); }
