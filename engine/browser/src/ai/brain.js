@@ -473,7 +473,8 @@ export function crearCerebro({ X, duel, db, names, nivel="normal", yo=1, log, la
 
     if(intento < lista.length){
       ultimoAtacante = lista[intento].c;
-      traza(`ataca con ${lista[intento].c.nombre}`, { valor:+lista[intento].p.toFixed(2) });
+      const valorAtaque = lista[intento].p ?? valeAtacar(lista[intento].c);
+      traza(`ataca con ${lista[intento].c.nombre}`, { valor:+valorAtaque.toFixed(2) });
       return { type:R.SELECT_BATTLECMD, action:BA.SELECT_BATTLE, index:lista[intento].i };
     }
     return { type:R.SELECT_BATTLECMD, action: m.to_m2?BA.TO_M2:BA.TO_EP, index:null };
