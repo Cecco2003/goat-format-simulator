@@ -166,7 +166,7 @@ const ok=(cond,msg)=>{ console.log(cond?"  ✓":"  ✗",msg); if(!cond) fallos++
   const r=brain(m,0);
   ok(r.index==null,"Sakuretsu viene conservata contro un attacco non urgente");
 
-  d.lp[1]=1600;
+  d.lp[1]=1400;
   const r2=brain(m,0);
   ok(r2.index===0,"Sakuretsu viene usata quando l'attacco sarebbe letale");
 }
