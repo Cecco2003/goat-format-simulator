@@ -23,6 +23,9 @@ const names = {
   2001:{name:"Mystical Space Typhoon"},
   3001:{name:"Smashing Ground"},
   3002:{name:"Snatch Steal"},
+  4001:{name:"Sakuretsu Armor"},
+  4002:{name:"Mirror Force"},
+  5001:{name:"Gravekeeper's Spy"},
 };
 const db = new Map([
   [1001,{type:1,attack:1900,defense:1400}],
@@ -31,6 +34,9 @@ const db = new Map([
   [2001,{type:0x10002,attack:0,defense:0}], // Quick-Play Spell
   [3001,{type:0x2,attack:0,defense:0}],     // Normal Spell
   [3002,{type:0x40002,attack:0,defense:0}], // Equip Spell
+  [4001,{type:0x4,attack:0,defense:0}],      // Normal Trap
+  [4002,{type:0x4,attack:0,defense:0}],      // Normal Trap
+  [5001,{type:0x200001,attack:1200,defense:2000}],
 ]);
 
 function card(uid, code, controller, location, sequence, position=1){
@@ -112,6 +118,52 @@ const ok=(cond,msg)=>{ console.log(cond?"  ✓":"  ✗",msg); if(!cond) fallos++
            selects:[{code:2001,controller:1,location:8,sequence:0}]};
   const r=brain(m,0);
   ok(r.index===0,"MST resta disponibile contro un Equip che deve rimanere sul campo");
+}
+
+/* Un mostro coperto è informazione nascosta: anche se la stima euristica
+   "1600" farebbe tornare i conti, non deve trasformarsi in lethal certo. */
+{
+  const d=duelBase();
+  d.lp[0]=3000;
+  put(d,card(51,1001,1,4,0,1));
+  put(d,card(52,1002,1,4,1,1));
+  put(d,card(53,1003,1,4,2,1));
+  put(d,card(54,5001,0,4,0,8)); // coperto: il bot non deve leggerne la DEF
+  put(d,card(55,0,0,8,0,8));
+  put(d,card(56,0,0,8,1,8));
+  for(let i=0;i<5;i++) put(d,card(60+i,1003,1,2,i,1));
+
+  const brain=crearCerebro({X,duel:d,db,names,nivel:"experto",yo:1});
+  const attacks=[
+    {code:1001,controller:1,location:4,sequence:0},
+    {code:1002,controller:1,location:4,sequence:1},
+    {code:1003,controller:1,location:4,sequence:2},
+  ];
+  const m={type:X.OcgMessageType.SELECT_BATTLECMD,attacks,to_m2:true};
+  const r0=brain(m,0), r1=brain(m,1);
+  ok(r0.action===X.SelectBattleCMDAction.SELECT_BATTLE,
+     "informazione nascosta: prova un attacco contro il set");
+  ok(r1.action!==X.SelectBattleCMDAction.SELECT_BATTLE,
+     "informazione nascosta: non tratta il set come lethal matematicamente certo");
+}
+
+/* Sakuretsu non va sprecata sul primo attaccante minuscolo solo perché è
+   legalmente attivabile; deve invece scattare quando il colpo è letale. */
+{
+  const d=duelBase();
+  const sak=card(70,4001,1,8,0,8); put(d,sak);
+  const piccolo=card(71,1003,0,4,0,1); put(d,piccolo);
+  d.lp[1]=8000;
+  d.ataqueActual={attackerUid:71,targetUid:null};
+  const brain=crearCerebro({X,duel:d,db,names,nivel:"experto",yo:1});
+  const m={type:X.OcgMessageType.SELECT_CHAIN,forced:false,
+           selects:[{code:4001,controller:1,location:8,sequence:0}]};
+  const r=brain(m,0);
+  ok(r.index==null,"Sakuretsu viene conservata contro un attacco non urgente");
+
+  d.lp[1]=1600;
+  const r2=brain(m,0);
+  ok(r2.index===0,"Sakuretsu viene usata quando l'attacco sarebbe letale");
 }
 
 if(fallos){ console.error("\n"+fallos+" regressione/i fallita/e"); process.exit(1); }
