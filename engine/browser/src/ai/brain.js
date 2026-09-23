@@ -708,6 +708,34 @@ export function crearCerebro({ X, duel, db, names, nivel="normal", yo=1, log, la
         return { type:R.SELECT_CARD, indicies:[mejor.i] };
       }
     }
+    /* Bersagli Magia/Trappola. Se abbiamo già deciso di spendere MST,
+       Dust Tornado o Breaker, almeno colpiamo prima le permanenti note che
+       stanno generando valore; solo dopo si passa alle backrow sconosciute. */
+    if(m.type===T.SELECT_CARD && lista.length>1 && lista.every(l=>l.location===8)){
+      const arriba = duel.cadena?.[duel.cadena.length-1] ?? null;
+      const fuente = cartaDeCadena(arriba) ?? efectoPendiente;
+      const nomFuente = canon(fuente?.nombre);
+      const ruolo = fuente ? rolDe(fuente) : "";
+      const rompe = ruolo==="spellRemoval" || nomFuente==="Breaker the Magical Warrior";
+      if(rompe){
+        const cand=lista.map((l,i)=>({i,l,c:cartaDeLista(l),tapada:!!(l.position&0x0a)}))
+          .filter(x=>x.l.controller!==yo);
+        const conocidas=cand.filter(x=>!x.tapada).map(x=>{
+          const r=rolDe(x.c);
+          let p=valorCarta(x.c);
+          if(["equipSteal","revival"].includes(r)) p+=4;
+          if(efectoDependeDePermanecer(x.c)) p+=2.5;
+          return {...x,p};
+        }).sort((a,b)=>b.p-a.p);
+        const ocultas=cand.filter(x=>x.tapada);
+        const mejor=conocidas[0] ?? ocultas[0] ?? cand[0];
+        if(mejor){
+          traza(`objetivo ${nomFuente||"rimozione M/T"}: ${mejor.c.nombre||"backrow coperta"}`);
+          return {type:R.SELECT_CARD,indicies:[mejor.i]};
+        }
+      }
+    }
+
     const esTributo = m.type===T.SELECT_TRIBUTE;
     const esDescarte = m.type===T.SELECT_CARD && m.selects?.every(l=>l.location===2);
     const puntuar = (l)=>{
