@@ -79,9 +79,15 @@ export function crearCerebro({ X, duel, db, names, nivel="normal", yo=1, log, la
   const nombreDe = c => names[c.code]?.name ?? "";
   let ultimoAtacante = null;   // para elegir bien el objetivo del ataque
   const giros = new Map();     // uid → veces que le hemos cambiado la posición
-  const cartaDeLista = l => ({ code:l.code, nombre:names[l.code]?.name ?? "",
-                               datos:db.get(l.code) ?? null,
-                               defensa:false, bocaAbajo:false });
+  const cartaDeLista = l => {
+    /* I messaggi del core possono trasportare internamente il code anche per
+       carte che il giocatore non dovrebbe conoscere. La IA non deve usarlo. */
+    const oculta = l?.controller != null && l.controller!==yo && !!(l.position & 0x0a);
+    const code = oculta ? null : l.code;
+    return { code, nombre:code ? (names[code]?.name ?? "") : "",
+             datos:code ? (db.get(code) ?? null) : null,
+             defensa:!!(l.position & 0x0c), bocaAbajo:!!(l.position & 0x0a) };
+  };
 
   /* ── ¿tengo con qué? consultas sobre la vista legal ── */
   const tieneEnMano = (v,nom) => v.mano.some(c=>canon(c.nombre)===nom);
@@ -605,19 +611,43 @@ export function crearCerebro({ X, duel, db, names, nivel="normal", yo=1, log, la
       traza(`objetivo: ${elegido.objetivo.nombre}`);
       return { type:R.SELECT_CARD, indicies:[elegido.i] };
     }
-    /* Thousand-Eyes Restrict absorbe copiando el ATK del objetivo. Si
-       absorbe una carta tapada se queda en 0 ATK y ataca con 0: medido en
-       check-cartas.mjs (boca arriba → 1900, tapada → 0). Así que de los
-       monstruos del rival, solo boca arriba, y el de más ataque. */
+    /* Selezione bersagli contestuale. Prima QUALSIASI SELECT_CARD sui
+       mostri fuori dalla Battle Phase usava la politica di Thousand-Eyes:
+       era corretta per TER/Snatch, ma sbagliata per Tsukuyomi, Book, Ring,
+       ecc. La sorgente dell'effetto è l'ultimo anello della catena. */
     if(m.type===T.SELECT_CARD && lista.length>1
        && lista.every(l=>l.location===4) && !enBatalla){
-      const rivales = lista.map((l,i)=>({ i, l, c:cartaDeLista(l),
-                                          tapada:!!(l.position & 0x0a) }))
-                           .filter(x=>x.l.controller!==yo);
-      const caraArriba = rivales.filter(x=>!x.tapada);
-      if(caraArriba.length){
-        const mejor = caraArriba.sort((a,b)=>poder(b.c)-poder(a.c))[0];
-        traza(`objetivo boca arriba: ${mejor.c.nombre}`);
+      const arriba = duel.cadena?.[duel.cadena.length-1] ?? null;
+      const fuente = cartaDeCadena(arriba);
+      const nomFuente = canon(fuente?.nombre);
+      const cand = lista.map((l,i)=>({ i, l, c:cartaDeLista(l),
+                                       tapada:!!(l.position & 0x0a) }));
+      const rivales = cand.filter(x=>x.l.controller!==yo);
+      const mios = cand.filter(x=>x.l.controller===yo);
+      const caraArribaRival = rivales.filter(x=>!x.tapada);
+      let mejor = null;
+
+      if(["Thousand-Eyes Restrict","Snatch Steal"].includes(nomFuente)){
+        mejor = [...caraArribaRival].sort((a,b)=>
+          (valorCarta(b.c)+poder(b.c)/1800) - (valorCarta(a.c)+poder(a.c)/1800))[0] ?? null;
+      } else if(nomFuente==="Book of Moon"){
+        const uidAtk = duel.ataqueActual?.attackerUid;
+        mejor = cand.find(x => duel.resolve(x.l,x.l.code)?.uid===uidAtk) ?? null;
+        if(!mejor) mejor = [...caraArribaRival].sort((a,b)=>poder(b.c)-poder(a.c))[0] ?? null;
+      } else if(nomFuente==="Tsukuyomi"){
+        const flipPropio = mios.filter(x=>!x.tapada &&
+          (infoDe(x.c).rol==="flip" || infoDe(x.c).colocarPreferente))
+          .sort((a,b)=>valorCarta(b.c)-valorCarta(a.c))[0];
+        mejor = flipPropio ?? [...caraArribaRival].sort((a,b)=>poder(b.c)-poder(a.c))[0] ?? null;
+      } else if(nomFuente==="Ring of Destruction"){
+        const seguros = caraArribaRival.filter(x=>atk(x.c) < v.lp.mio);
+        const letales = seguros.filter(x=>atk(x.c) >= v.lp.rival)
+                              .sort((a,b)=>atk(a.c)-atk(b.c));
+        mejor = letales[0] ?? seguros.sort((a,b)=>poder(b.c)-poder(a.c))[0] ?? null;
+      }
+
+      if(mejor){
+        traza(`objetivo ${nomFuente||"efecto"}: ${mejor.c.nombre||"carta visibile"}`);
         return { type:R.SELECT_CARD, indicies:[mejor.i] };
       }
     }
