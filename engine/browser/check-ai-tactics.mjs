@@ -28,6 +28,10 @@ const names = {
   5001:{name:"Gravekeeper's Spy"},
   6001:{name:"Heavy Storm"},
   7001:{name:"Mystic Tomato"},
+  8001:{name:"Torrential Tribute"},
+  8002:{name:"Ring of Destruction"},
+  8003:{name:"Book of Moon"},
+  8004:{name:"D.D. Warrior Lady"},
 };
 const db = new Map([
   [1001,{type:1,attack:1900,defense:1400}],
@@ -41,6 +45,10 @@ const db = new Map([
   [5001,{type:0x200001,attack:1200,defense:2000}],
   [6001,{type:0x2,attack:0,defense:0}],
   [7001,{type:1,attack:1400,defense:1100}],
+  [8001,{type:0x4,attack:0,defense:0}],
+  [8002,{type:0x4,attack:0,defense:0}],
+  [8003,{type:0x10002,attack:0,defense:0}],
+  [8004,{type:1,attack:1500,defense:1600}],
 ]);
 
 function card(uid, code, controller, location, sequence, position=1){
@@ -200,6 +208,94 @@ const ok=(cond,msg)=>{ console.log(cond?"  ✓":"  ✗",msg); if(!cond) fallos++
   const r=brain(m,0);
   ok(r.action===X.SelectIdleCMDAction.SELECT_ACTIVATE,
      "Heavy Storm viene usata quando pulisce gratis due backrow avversarie");
+}
+
+/* Torrential: non resettare un campo proprio migliore per un solo mostro avversario. */
+{
+  const d=duelBase();
+  put(d,card(100,8001,1,8,0,8));
+  put(d,card(101,1001,1,4,0,1));
+  put(d,card(102,1002,1,4,1,1));
+  put(d,card(103,7001,0,4,0,1));
+  const brain=crearCerebro({X,duel:d,db,names,nivel:"experto",yo:1});
+  const m={type:X.OcgMessageType.SELECT_CHAIN,forced:false,
+           selects:[{code:8001,controller:1,location:8,sequence:0}]};
+  const r=brain(m,0);
+  ok(r.index==null,"Torrential viene conservata quando il reset è sfavorevole");
+}
+
+/* Torrential: campo proprio vuoto contro due minacce -> reset sensato. */
+{
+  const d=duelBase();
+  put(d,card(110,8001,1,8,0,8));
+  put(d,card(111,1001,0,4,0,1));
+  put(d,card(112,1002,0,4,1,1));
+  const brain=crearCerebro({X,duel:d,db,names,nivel:"experto",yo:1});
+  const m={type:X.OcgMessageType.SELECT_CHAIN,forced:false,
+           selects:[{code:8001,controller:1,location:8,sequence:0}]};
+  const r=brain(m,0);
+  ok(r.index===0,"Torrential viene usata quando pulisce un campo avversario senza perdere mostri");
+}
+
+/* Ring: non deve scegliere una linea che manda a zero anche noi. */
+{
+  const d=duelBase();
+  d.lp[1]=1500; d.lp[0]=8000;
+  put(d,card(120,8002,1,8,0,8));
+  put(d,card(121,1001,0,4,0,1)); // 1900 ATK > nostri LP
+  const brain=crearCerebro({X,duel:d,db,names,nivel:"experto",yo:1});
+  const m={type:X.OcgMessageType.SELECT_CHAIN,forced:false,
+           selects:[{code:8002,controller:1,location:8,sequence:0}]};
+  const r=brain(m,0);
+  ok(r.index==null,"Ring of Destruction evita l'autosconfitta");
+}
+
+/* Ring: se il danno chiude la partita e noi sopravviviamo, va usata. */
+{
+  const d=duelBase();
+  d.lp[1]=3000; d.lp[0]=1800;
+  put(d,card(130,8002,1,8,0,8));
+  put(d,card(131,1001,0,4,0,1)); // 1900: lethal sull'avversario, noi restiamo a 1100
+  const brain=crearCerebro({X,duel:d,db,names,nivel:"experto",yo:1});
+  const m={type:X.OcgMessageType.SELECT_CHAIN,forced:false,
+           selects:[{code:8002,controller:1,location:8,sequence:0}]};
+  const r=brain(m,0);
+  ok(r.index===0,"Ring of Destruction viene usata per un lethal sicuro");
+}
+
+/* D.D. Warrior Lady: l'effetto opzionale non è più un sì automatico. */
+{
+  const d=duelBase();
+  const dd=card(140,8004,1,4,0,1); put(d,dd);
+  const tomato=card(141,7001,0,4,0,1); put(d,tomato);
+  d.ultimaBatalla={attackerUid:140,targetUid:141,attackerDestroyed:false,targetDestroyed:false};
+  const brain=crearCerebro({X,duel:d,db,names,nivel:"experto",yo:1});
+  const no=brain({type:X.OcgMessageType.SELECT_EFFECTYN,code:8004},0);
+  ok(no.yes===false,"D.D. Warrior Lady conserva l'effetto contro un bersaglio mediocre");
+
+  const air=card(142,1001,0,4,1,1); put(d,air);
+  d.ultimaBatalla={attackerUid:140,targetUid:142,attackerDestroyed:true,targetDestroyed:false};
+  const yes=brain({type:X.OcgMessageType.SELECT_EFFECTYN,code:8004},0);
+  ok(yes.yes===true,"D.D. Warrior Lady bandisce una minaccia forte quando conviene");
+}
+
+/* MST: una permanente nota e pericolosa deve essere scelta prima di una set sconosciuta. */
+{
+  const d=duelBase();
+  put(d,card(150,2001,1,2,0,1));
+  put(d,card(151,3002,0,8,0,1)); // Snatch Steal face-up
+  put(d,card(152,0,0,8,1,8));    // backrow sconosciuta
+  const brain=crearCerebro({X,duel:d,db,names,nivel:"experto",yo:1});
+  const idle={type:X.OcgMessageType.SELECT_IDLECMD,
+              activates:[{code:2001,controller:1,location:2,sequence:0}],
+              to_bp:true,to_ep:true};
+  const a=brain(idle,0);
+  ok(a.action===X.SelectIdleCMDAction.SELECT_ACTIVATE,"MST viene attivato contro Snatch Steal attivo");
+  const target=brain({type:X.OcgMessageType.SELECT_CARD,min:1,max:1,selects:[
+    {code:3002,controller:0,location:8,sequence:0,position:1},
+    {code:9999,controller:0,location:8,sequence:1,position:8}
+  ]},0);
+  ok(target.indicies?.[0]===0,"MST sceglie Snatch Steal prima della backrow sconosciuta");
 }
 
 if(fallos){ console.error("\n"+fallos+" regressione/i fallita/e"); process.exit(1); }
