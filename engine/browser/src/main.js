@@ -102,6 +102,14 @@ async function drain(){
         if(e.uid) V.glow(e.uid,true);
         V.toast(`Cadena ${e.link}: ${nm(e.code)}`); await V.sleep(500);
         if(e.uid) V.glow(e.uid,false); break;
+      case "deckBanishSummary": {
+        const parti=(e.removals??[]).map(r=>`${r.count}× ${nm(r.code)}`);
+        if(parti.length){
+          V.toast(`Rimosse dal Deck: ${parti.join(", ")}`);
+          await V.sleep(900);
+        }
+        break;
+      }
       case "chainEnd": chainActive=false; V.ocultarReveladas(); break;
       /* Cartas que un efecto pone boca arriba (Trap Dustshoot, Confiscation…):
          salen al centro del tablero hasta que la cadena termina. */
