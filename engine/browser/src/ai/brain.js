@@ -100,6 +100,44 @@ export function crearCerebro({ X, duel, db, names, nivel="normal", yo=1, log, la
     return v.monstruosRival[0] ?? null;
   };
 
+  /* Destruir una Normal/Quick-Play Spell o una Normal Trap después de que
+     se active NO niega su efecto. En cambio Continuous/Equip/Field sí suelen
+     necesitar seguir boca arriba para resolver o mantener el efecto. Esta
+     distinción evita encadenar MST/Dust Tornado "por reflejo" a una carta
+     que ya va a resolver igualmente. */
+  const efectoDependeDePermanecer = c => {
+    const t = c?.datos?.type ?? 0;
+    return !!(t & (0x20000 | 0x40000 | 0x80000)); // Continuous | Equip | Field
+  };
+  const cartaDeCadena = eslabon => {
+    if(!eslabon) return null;
+    const real = eslabon.uid ? duel.cards.get(eslabon.uid) : null;
+    const code = real?.code ?? eslabon.code;
+    return code ? { code, nombre:names[code]?.name ?? "", datos:db.get(code) ?? null,
+                    bocaAbajo:false, defensa:false } : null;
+  };
+
+  /* Estimación deliberadamente conservadora del daño disponible este turno.
+     Sirve solo para una cosa: no frenar los ataques por miedo al backrow
+     cuando el tablero ya contiene un lethal claro. No intenta simular efectos. */
+  const dañoLetalEstimado = (atacantes, defensores) => {
+    const libres = atacantes.map(atk).filter(x=>x>0).sort((a,b)=>a-b);
+    let daño = 0;
+    const muros = [...defensores].sort((a,b)=>{
+      const pa = a.bocaAbajo ? 1600 : (a.defensa ? def(a) : atk(a));
+      const pb = b.bocaAbajo ? 1600 : (b.defensa ? def(b) : atk(b));
+      return pb-pa;
+    });
+    for(const r of muros){
+      const fuerza = r.bocaAbajo ? 1600 : (r.defensa ? def(r) : atk(r));
+      const k = libres.findIndex(a=>a>fuerza);
+      if(k<0) return daño; // no puedo abrir paso a los ataques directos restantes
+      const a = libres.splice(k,1)[0];
+      if(!r.bocaAbajo && !r.defensa) daño += Math.max(0, a-atk(r));
+    }
+    return daño + libres.reduce((sum,a)=>sum+a,0);
+  };
+
   /* Cuánta prisa tengo. Un jugador bueno guarda cartas, pero no las
      entierra: si va por detrás o la partida se alarga, las juega. */
   function apuro(v){
@@ -419,9 +457,19 @@ export function crearCerebro({ X, duel, db, names, nivel="normal", yo=1, log, la
     /* Freno con motivo: si el rival tiene tapadas, aún no ha enseñado la
        trampa de masa y tú ya vas ganando, no metas todo el campo. */
     const trampasFuera = rivalUso(v,"Mirror Force") || rivalUso(v,"Torrential Tribute");
-    const prudente = !trampasFuera && v.tapadasRival>=2 && v.monstruos.length>=3
+    const dañoDisponible = dañoLetalEstimado(ataques.map(a=>a.c), rivales);
+    const lethalClaro = dañoDisponible >= v.lp.rival;
+    /* La prudencia contra Mirror/Torrential nunca puede hacer que el bot
+       deje pasar una victoria que ya está en mesa. Cuando detectamos lethal,
+       tampoco filtramos atacantes por la heurística de "valor": se intenta
+       usar toda la secuencia legal necesaria para cerrar la partida. */
+    const prudente = !lethalClaro && !trampasFuera && v.tapadasRival>=2 && v.monstruos.length>=3
                      && ventaja(v)>2 && v.lp.rival>3000;
-    const lista = prudente ? puntuados.slice(0,1) : puntuados;
+    const lista = lethalClaro
+      ? ataques.sort((a,b)=>atk(b.c)-atk(a.c))
+      : (prudente ? puntuados.slice(0,1) : puntuados);
+    if(lethalClaro) traza("lethal detectado: no freno ataques por backrow",
+                          { dañoEstimado:dañoDisponible, lpRival:v.lp.rival });
 
     if(intento < lista.length){
       ultimoAtacante = lista[intento].c;
@@ -454,7 +502,20 @@ export function crearCerebro({ X, duel, db, names, nivel="normal", yo=1, log, la
       if(inf.rol==="trapRemoval") return 4;
       if(inf.rol==="counter") return exp("counter") ? (v.lp.mio>4000 ? 4.5 : 1) : 2;
       if(inf.rol==="removal" && inf.rapida) return 4;
-      if(inf.rol==="spellRemoval") return 3;
+      if(inf.rol==="spellRemoval"){
+        const arriba = duel.cadena?.[duel.cadena.length-1] ?? null;
+        const activa = cartaDeCadena(arriba);
+        /* Si la carta en resolución es Normal/Quick-Play/Normal Trap,
+           romper ESA carta no niega su efecto. Solo merece encadenar MST/Dust
+           si hay otro objetivo conocido cuyo efecto sí depende de permanecer
+           boca arriba, o si precisamente la carta activa es persistente. */
+        const activaPersistente = activa && efectoDependeDePermanecer(activa);
+        const otroPersistente = v.backrowRival.some(c2 =>
+          !c2.bocaAbajo && c2.uid!==arriba?.uid &&
+          (efectoDependeDePermanecer(c2) || ["equipSteal","revival"].includes(rolDe(c2))));
+        if(activaPersistente || otroPersistente) return 5;
+        return 0.2;
+      }
       return 2;
     };
     /* NUNCA responder a tu propia carta. En el duelo del 2026-08-10 el
