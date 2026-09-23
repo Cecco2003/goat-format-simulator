@@ -40,6 +40,7 @@ export class GoatDuel {
     this.pending = null;             // pregunta del core esperando respuesta
     this.desyncs = 0;                // veces que el espejo no cuadró con el core
     this.cadena = [];                // eslabones vivos: {code, controller, uid}
+    this.ataqueActual = null;         // {attackerUid,targetUid}: utile alla IA nelle finestre di risposta
     this.finished = false;
   }
   emptySide(){
@@ -161,7 +162,7 @@ export class GoatDuel {
         this.turnPlayer = m.player; this.turnCount++;
         this.emit("turn",{ player:m.player, turn:this.turnCount }); break;
       case T.NEW_PHASE:
-        this.phase = m.phase; this.emit("phase",{ phase:m.phase }); break;
+        this.phase = m.phase; this.ataqueActual=null; this.emit("phase",{ phase:m.phase }); break;
 
       case T.DRAW: {
         const drawn = [];
@@ -229,6 +230,7 @@ export class GoatDuel {
       }
       case T.BATTLE: {
         const a=this.at(m.card.controller,m.card.location,m.card.sequence);
+        this.ataqueActual=null;
         const t=m.target?this.at(m.target.controller,m.target.location,m.target.sequence):null;
         /* El mensaje trae quién muere y con cuánto: con eso se puede medir
            si la IA ataca bien o se suicida (ver analizar.mjs). */
@@ -239,7 +241,7 @@ export class GoatDuel {
                      muere:!!m.target.destroyed, controller:m.target.controller } : null });
         break;
       }
-      case T.ATTACK_DISABLED: this.emit("attackCancelled",{}); break;
+      case T.ATTACK_DISABLED: this.ataqueActual=null; this.emit("attackCancelled",{}); break;
       case T.SUMMONED: case T.SPSUMMONED: case T.FLIPSUMMONED:
         this.emit("summoned",{}); break;
       case T.CHAIN_SOLVED: this.emit("chainSolved",{ link:m.chain_size }); break;
@@ -247,6 +249,7 @@ export class GoatDuel {
       case T.ATTACK: {
         const a = this.at(m.card.controller, m.card.location, m.card.sequence);
         const t = m.target ? this.at(m.target.controller, m.target.location, m.target.sequence) : null;
+        this.ataqueActual={ attackerUid:a?.uid ?? null, targetUid:t?.uid ?? null };
         this.emit("attack",{ uid:a?.uid, targetUid:t?.uid ?? null }); break;
       }
       case T.DAMAGE:
