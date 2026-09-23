@@ -91,7 +91,7 @@ export class GoatDuel {
   }
   newCard(code, controller, location){
     const c = { uid:++this.uid, code, controller, location, sequence:0,
-                position:POS.FACEDOWN_DEFENSE };
+                position:POS.FACEDOWN_DEFENSE, knownTo:new Set([controller]) };
     this.cards.set(c.uid, c); return c;
   }
 
@@ -192,6 +192,16 @@ export class GoatDuel {
                        sequence:from.sequence, position:card.position };
         this.insert(card, to.controller, to.location, to.sequence);
         card.position = to.position ?? card.position;
+        /* Memoria lecita: una carta pubblica o esplicitamente rivelata resta
+           conosciuta anche se poi viene settata. Se torna nel Deck/Extra e
+           viene nascosta, l'avversario perde invece l'identità della singola copia. */
+        card.knownTo ??= new Set([card.controller]);
+        if(to.location===LOC.DECK || to.location===LOC.EXTRA){
+          card.knownTo = new Set([to.controller]);
+        } else if(to.location===LOC.GRAVE || to.location===LOC.REMOVED ||
+                  ((to.location===LOC.MZONE || to.location===LOC.SZONE) && !isFaceDown(card.position))){
+          card.knownTo.add(0); card.knownTo.add(1);
+        }
         this.reindex(from.controller, from.location);
         if(from.location===LOC.DECK && to.location===LOC.REMOVED && card.code){
           const k=`${to.controller}:${card.code}`;
@@ -323,6 +333,8 @@ export class GoatDuel {
           const card = this.resolve(c, c.code);
           if(!card) continue;
           if(c.code) card.code = c.code;
+          card.knownTo ??= new Set([card.controller]);
+          card.knownTo.add(m.player);   // chi ha visto la carta può ricordarla
           vistas.push(card);
         }
         this.emit("revelar", { player:m.player, uids:vistas.map(c=>c.uid),
