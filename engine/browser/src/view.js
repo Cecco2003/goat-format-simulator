@@ -239,7 +239,15 @@ function colocarFases(){
 export function fitBoard(){
   const st=document.getElementById("stage"), pl=document.getElementById("plane");
   if(!st||!pl||!grid) return;
-  const availW=st.clientWidth-24, availH=st.clientHeight-16;
+  const css=getComputedStyle(st);
+  /* clientWidth include il padding. Ora che su desktop esiste una corsia
+     laterale riservata alle azioni, contare quel padding come spazio utile
+     riporterebbe esattamente il bug: il tavolo verrebbe ingrandito dentro
+     un'area che in realtà non può usare. */
+  const padX=(parseFloat(css.paddingLeft)||0)+(parseFloat(css.paddingRight)||0);
+  const padY=(parseFloat(css.paddingTop)||0)+(parseFloat(css.paddingBottom)||0);
+  const availW=Math.max(0,st.clientWidth-padX-24);
+  const availH=Math.max(0,st.clientHeight-padY-16);
   const w=grid.offsetWidth, h=grid.offsetHeight;
   if(!w||!h) return;
   /* Debajo del tablero cuelga la mano. Reservar "un 20% más" era un número
@@ -251,8 +259,13 @@ export function fitBoard(){
   const esc = parseFloat(getComputedStyle(document.documentElement)
                 .getPropertyValue("--mano-mia")) || 1;
   const cuelga = CW*1.46*0.80*esc;
-  const k=Math.min(1, availW/w, availH/(h + cuelga));
-  pl.style.transform=`scale(${k.toFixed(3)}) rotateX(var(--tilt))`;
+  /* Su un desktop ampio non portiamo più il tavolo al 100% fisso: 92%
+     mantiene un po' di respiro attorno alle zone laterali e rende più
+     semplice cliccare Cimitero/Extra/Desterrate senza effetto "zoomato". */
+  const desktop = window.matchMedia("(min-width:1251px) and (pointer:fine)").matches;
+  const maxScale = desktop ? 0.92 : 1;
+  const k=Math.min(maxScale, availW/w, availH/(h + cuelga));
+  pl.style.transform=`scale(${Math.max(0.1,k).toFixed(3)}) rotateX(var(--tilt))`;
   requestAnimationFrame(colocarFases);
 }
 export function layoutAll(instant){
