@@ -27,6 +27,7 @@ const names = {
   4002:{name:"Mirror Force"},
   5001:{name:"Gravekeeper's Spy"},
   6001:{name:"Heavy Storm"},
+  7001:{name:"Mystic Tomato"},
 };
 const db = new Map([
   [1001,{type:1,attack:1900,defense:1400}],
@@ -39,6 +40,7 @@ const db = new Map([
   [4002,{type:0x4,attack:0,defense:0}],      // Normal Trap
   [5001,{type:0x200001,attack:1200,defense:2000}],
   [6001,{type:0x2,attack:0,defense:0}],
+  [7001,{type:1,attack:1400,defense:1100}],
 ]);
 
 function card(uid, code, controller, location, sequence, position=1){
@@ -135,18 +137,19 @@ const ok=(cond,msg)=>{ console.log(cond?"  ✓":"  ✗",msg); if(!cond) fallos++
   put(d,card(56,0,0,8,1,8));
   for(let i=0;i<5;i++) put(d,card(60+i,1003,1,2,i,1));
 
-  const brain=crearCerebro({X,duel:d,db,names,nivel:"experto",yo:1});
+  const pensieri=[];
+  const brain=crearCerebro({X,duel:d,db,names,nivel:"experto",yo:1,log:x=>pensieri.push(x)});
   const attacks=[
     {code:1001,controller:1,location:4,sequence:0},
     {code:1002,controller:1,location:4,sequence:1},
     {code:1003,controller:1,location:4,sequence:2},
   ];
   const m={type:X.OcgMessageType.SELECT_BATTLECMD,attacks,to_m2:true};
-  const r0=brain(m,0), r1=brain(m,1);
+  const r0=brain(m,0);
   ok(r0.action===X.SelectBattleCMDAction.SELECT_BATTLE,
-     "informazione nascosta: prova un attacco contro il set");
-  ok(r1.action!==X.SelectBattleCMDAction.SELECT_BATTLE,
-     "informazione nascosta: non tratta il set come lethal matematicamente certo");
+     "informazione nascosta: il bot può comunque sondare il mostro coperto");
+  ok(!pensieri.some(x=>/lethal detectado/i.test(x.msg||"")),
+     "informazione nascosta: un mostro coperto impedisce di dichiarare lethal certo");
 }
 
 /* Sakuretsu non va sprecata sul primo attaccante minuscolo solo perché è
@@ -154,7 +157,7 @@ const ok=(cond,msg)=>{ console.log(cond?"  ✓":"  ✗",msg); if(!cond) fallos++
 {
   const d=duelBase();
   const sak=card(70,4001,1,8,0,8); put(d,sak);
-  const piccolo=card(71,1003,0,4,0,1); put(d,piccolo);
+  const piccolo=card(71,7001,0,4,0,1); put(d,piccolo);
   d.lp[1]=8000;
   d.ataqueActual={attackerUid:71,targetUid:null};
   const brain=crearCerebro({X,duel:d,db,names,nivel:"experto",yo:1});
