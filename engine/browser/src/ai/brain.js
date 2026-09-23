@@ -78,6 +78,7 @@ export function crearCerebro({ X, duel, db, names, nivel="normal", yo=1, log, la
 
   const nombreDe = c => names[c.code]?.name ?? "";
   let ultimoAtacante = null;   // para elegir bien el objetivo del ataque
+  let efectoPendiente = null;   // carta che ha appena aperto una selezione bersaglio/costo
   const giros = new Map();     // uid → veces que le hemos cambiado la posición
   const cartaDeLista = l => {
     /* I messaggi del core possono trasportare internamente il code anche per
@@ -434,6 +435,8 @@ export function crearCerebro({ X, duel, db, names, nivel="normal", yo=1, log, la
       traza(elegido.por, { puntos:+elegido.puntos.toFixed(2) });
       if(elegido.action===IA.SELECT_POS_CHANGE && elegido.uid!=null)
         giros.set(elegido.uid, (giros.get(elegido.uid) ?? 0) + 1);
+      if(elegido.action===IA.SELECT_ACTIVATE)
+        efectoPendiente = cartaDeLista((m.activates||[])[elegido.index] ?? {});
       return { type:R.SELECT_IDLECMD, action:elegido.action, index:elegido.index };
     }
     // sin nada que merezca la pena: a la batalla o a terminar
@@ -626,6 +629,7 @@ export function crearCerebro({ X, duel, db, names, nivel="normal", yo=1, log, la
                           .filter(o=>o.p>2.4).sort((a,b)=>b.p-a.p);
     if(intento < orden.length){
       traza(`encadena ${orden[intento].c.nombre}`);
+      efectoPendiente = orden[intento].c;
       return { type:R.SELECT_CHAIN, index:orden[intento].i };
     }
     return { type:R.SELECT_CHAIN, index:null };
@@ -671,7 +675,7 @@ export function crearCerebro({ X, duel, db, names, nivel="normal", yo=1, log, la
     if(m.type===T.SELECT_CARD && lista.length>1
        && lista.every(l=>l.location===4) && !enBatalla){
       const arriba = duel.cadena?.[duel.cadena.length-1] ?? null;
-      const fuente = cartaDeCadena(arriba);
+      const fuente = cartaDeCadena(arriba) ?? efectoPendiente;
       const nomFuente = canon(fuente?.nombre);
       const cand = lista.map((l,i)=>({ i, l, c:cartaDeLista(l),
                                        tapada:!!(l.position & 0x0a) }));
