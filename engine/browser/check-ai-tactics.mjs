@@ -2,6 +2,7 @@
    1) non fermarsi dopo un solo attacco quando il danno in campo e' lethal;
    2) non sprecare MST/Dust Tornado su una carta normale gia' in risoluzione. */
 import { crearCerebro } from "./src/ai/brain.js";
+import { vistaDe } from "./src/ai/view.js";
 
 const X = {
   OcgMessageType: { SELECT_IDLECMD:1, SELECT_BATTLECMD:2, SELECT_CHAIN:3,
@@ -296,6 +297,20 @@ const ok=(cond,msg)=>{ console.log(cond?"  ✓":"  ✗",msg); if(!cond) fallos++
     {code:9999,controller:0,location:8,sequence:1,position:8}
   ]},0);
   ok(target.indicies?.[0]===0,"MST sceglie Snatch Steal prima della backrow sconosciuta");
+}
+
+/* Memoria lecita: una carta coperta mai vista resta anonima; se è stata
+   rivelata in precedenza, il bot può ricordarne l'identità. */
+{
+  const d=duelBase();
+  const set=card(160,3002,0,8,0,8);
+  set.knownTo=new Set([0]);
+  put(d,set);
+  let v=vistaDe(d,1,db,names);
+  ok(v.backrowRival[0]?.code==null,"backrow mai rivelata resta sconosciuta alla IA");
+  set.knownTo.add(1);
+  v=vistaDe(d,1,db,names);
+  ok(v.backrowRival[0]?.code===3002,"la IA ricorda una backrow che aveva realmente visto");
 }
 
 if(fallos){ console.error("\n"+fallos+" regressione/i fallita/e"); process.exit(1); }
