@@ -10,7 +10,7 @@ const X = {
   OcgResponseType: { SELECT_IDLECMD:101, SELECT_BATTLECMD:102, SELECT_CHAIN:103,
     SELECT_CARD:104, SELECT_TRIBUTE:105, SELECT_UNSELECT_CARD:106,
     ANNOUNCE_CARD:107, SELECT_POSITION:108, SELECT_EFFECTYN:109, SELECT_YESNO:110 },
-  SelectIdleCMDAction: { TO_BP:1, TO_EP:2 },
+  SelectIdleCMDAction: { TO_BP:1, TO_EP:2, SELECT_ACTIVATE:3 },
   SelectBattleCMDAction: { SELECT_BATTLE:1, TO_M2:2, TO_EP:3 },
   OcgPosition: { FACEUP_ATTACK:1, FACEUP_DEFENSE:4, FACEDOWN_DEFENSE:8 },
   cardMatchesOpcode(){ return true; },
@@ -23,6 +23,11 @@ const names = {
   2001:{name:"Mystical Space Typhoon"},
   3001:{name:"Smashing Ground"},
   3002:{name:"Snatch Steal"},
+  4001:{name:"Sakuretsu Armor"},
+  4002:{name:"Mirror Force"},
+  5001:{name:"Gravekeeper's Spy"},
+  6001:{name:"Heavy Storm"},
+  7001:{name:"Mystic Tomato"},
 };
 const db = new Map([
   [1001,{type:1,attack:1900,defense:1400}],
@@ -31,6 +36,11 @@ const db = new Map([
   [2001,{type:0x10002,attack:0,defense:0}], // Quick-Play Spell
   [3001,{type:0x2,attack:0,defense:0}],     // Normal Spell
   [3002,{type:0x40002,attack:0,defense:0}], // Equip Spell
+  [4001,{type:0x4,attack:0,defense:0}],      // Normal Trap
+  [4002,{type:0x4,attack:0,defense:0}],      // Normal Trap
+  [5001,{type:0x200001,attack:1200,defense:2000}],
+  [6001,{type:0x2,attack:0,defense:0}],
+  [7001,{type:1,attack:1400,defense:1100}],
 ]);
 
 function card(uid, code, controller, location, sequence, position=1){
@@ -112,6 +122,84 @@ const ok=(cond,msg)=>{ console.log(cond?"  ✓":"  ✗",msg); if(!cond) fallos++
            selects:[{code:2001,controller:1,location:8,sequence:0}]};
   const r=brain(m,0);
   ok(r.index===0,"MST resta disponibile contro un Equip che deve rimanere sul campo");
+}
+
+/* Un mostro coperto è informazione nascosta: anche se la stima euristica
+   "1600" farebbe tornare i conti, non deve trasformarsi in lethal certo. */
+{
+  const d=duelBase();
+  d.lp[0]=3000;
+  put(d,card(51,1001,1,4,0,1));
+  put(d,card(52,1002,1,4,1,1));
+  put(d,card(53,1003,1,4,2,1));
+  put(d,card(54,5001,0,4,0,8)); // coperto: il bot non deve leggerne la DEF
+  put(d,card(55,0,0,8,0,8));
+  put(d,card(56,0,0,8,1,8));
+  for(let i=0;i<5;i++) put(d,card(60+i,1003,1,2,i,1));
+
+  const pensieri=[];
+  const brain=crearCerebro({X,duel:d,db,names,nivel:"experto",yo:1,log:x=>pensieri.push(x)});
+  const attacks=[
+    {code:1001,controller:1,location:4,sequence:0},
+    {code:1002,controller:1,location:4,sequence:1},
+    {code:1003,controller:1,location:4,sequence:2},
+  ];
+  const m={type:X.OcgMessageType.SELECT_BATTLECMD,attacks,to_m2:true};
+  const r0=brain(m,0);
+  ok(r0.action===X.SelectBattleCMDAction.SELECT_BATTLE,
+     "informazione nascosta: il bot può comunque sondare il mostro coperto");
+  ok(!pensieri.some(x=>/lethal detectado/i.test(x.msg||"")),
+     "informazione nascosta: un mostro coperto impedisce di dichiarare lethal certo");
+}
+
+/* Sakuretsu non va sprecata sul primo attaccante minuscolo solo perché è
+   legalmente attivabile; deve invece scattare quando il colpo è letale. */
+{
+  const d=duelBase();
+  const sak=card(70,4001,1,8,0,8); put(d,sak);
+  const piccolo=card(71,7001,0,4,0,1); put(d,piccolo);
+  d.lp[1]=8000;
+  d.ataqueActual={attackerUid:71,targetUid:null};
+  const brain=crearCerebro({X,duel:d,db,names,nivel:"experto",yo:1});
+  const m={type:X.OcgMessageType.SELECT_CHAIN,forced:false,
+           selects:[{code:4001,controller:1,location:8,sequence:0}]};
+  const r=brain(m,0);
+  ok(r.index==null,"Sakuretsu viene conservata contro un attacco non urgente");
+
+  d.lp[1]=1400;
+  const r2=brain(m,0);
+  ok(r2.index===0,"Sakuretsu viene usata quando l'attacco sarebbe letale");
+}
+
+/* Heavy Storm non deve fare -X puro sul proprio campo. */
+{
+  const d=duelBase();
+  const hs=card(80,6001,1,2,0,1); put(d,hs);
+  put(d,card(81,4001,1,8,0,8));
+  put(d,card(82,4002,1,8,1,8));
+  const brain=crearCerebro({X,duel:d,db,names,nivel:"experto",yo:1});
+  const m={type:X.OcgMessageType.SELECT_IDLECMD,
+           activates:[{code:6001,controller:1,location:2,sequence:0}],
+           to_bp:true,to_ep:true};
+  const r=brain(m,0);
+  ok(r.action!==X.SelectIdleCMDAction.SELECT_ACTIVATE,
+     "Heavy Storm non viene usata quando distruggerebbe solo backrow propria");
+}
+
+/* Con due carte avversarie e nessuna propria, Heavy Storm deve invece essere
+   una delle priorità alte della Main Phase. */
+{
+  const d=duelBase();
+  const hs=card(90,6001,1,2,0,1); put(d,hs);
+  put(d,card(91,0,0,8,0,8));
+  put(d,card(92,0,0,8,1,8));
+  const brain=crearCerebro({X,duel:d,db,names,nivel:"experto",yo:1});
+  const m={type:X.OcgMessageType.SELECT_IDLECMD,
+           activates:[{code:6001,controller:1,location:2,sequence:0}],
+           to_bp:true,to_ep:true};
+  const r=brain(m,0);
+  ok(r.action===X.SelectIdleCMDAction.SELECT_ACTIVATE,
+     "Heavy Storm viene usata quando pulisce gratis due backrow avversarie");
 }
 
 if(fallos){ console.error("\n"+fallos+" regressione/i fallita/e"); process.exit(1); }

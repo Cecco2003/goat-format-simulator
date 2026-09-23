@@ -79,9 +79,15 @@ export function crearCerebro({ X, duel, db, names, nivel="normal", yo=1, log, la
   const nombreDe = c => names[c.code]?.name ?? "";
   let ultimoAtacante = null;   // para elegir bien el objetivo del ataque
   const giros = new Map();     // uid → veces que le hemos cambiado la posición
-  const cartaDeLista = l => ({ code:l.code, nombre:names[l.code]?.name ?? "",
-                               datos:db.get(l.code) ?? null,
-                               defensa:false, bocaAbajo:false });
+  const cartaDeLista = l => {
+    /* I messaggi del core possono trasportare internamente il code anche per
+       carte che il giocatore non dovrebbe conoscere. La IA non deve usarlo. */
+    const oculta = l?.controller != null && l.controller!==yo && !!(l.position & 0x0a);
+    const code = oculta ? null : l.code;
+    return { code, nombre:code ? (names[code]?.name ?? "") : "",
+             datos:code ? (db.get(code) ?? null) : null,
+             defensa:!!(l.position & 0x0c), bocaAbajo:!!(l.position & 0x0a) };
+  };
 
   /* ── ¿tengo con qué? consultas sobre la vista legal ── */
   const tieneEnMano = (v,nom) => v.mano.some(c=>canon(c.nombre)===nom);
@@ -115,6 +121,13 @@ export function crearCerebro({ X, duel, db, names, nivel="normal", yo=1, log, la
     const code = real?.code ?? eslabon.code;
     return code ? { code, nombre:names[code]?.name ?? "", datos:db.get(code) ?? null,
                     bocaAbajo:false, defensa:false } : null;
+  };
+  const atacanteActual = () => {
+    const uid = duel.ataqueActual?.attackerUid;
+    const real = uid ? duel.cards.get(uid) : null;
+    if(!real) return null;
+    return { code:real.code, nombre:names[real.code]?.name ?? "",
+             datos:db.get(real.code) ?? null, bocaAbajo:false, defensa:false };
   };
 
   /* Estimación deliberadamente conservadora del daño disponible este turno.
@@ -273,8 +286,29 @@ export function crearCerebro({ X, duel, db, names, nivel="normal", yo=1, log, la
           break;
         }
         case "massRemoval": {
-          const suyas = v.backrowRival.length, mias = v.backrow.length;
-          if(n>=2){
+          const suyas = v.backrowRival.length;
+          /* Se Heavy Storm parte già settata, non va contata come perdita:
+             una carta attivata andrebbe comunque al Cimitero dopo la risoluzione. */
+          const realActiva = duel.resolve?.(l, l.code) ?? null;
+          const propiaActivaEnCampo = realActiva?.controller===yo && realActiva?.location===8;
+          const mias = Math.max(0, v.backrow.length - (propiaActivaEnCampo ? 1 : 0));
+
+          if(nom==="Heavy Storm"){
+            const saldo = suyas - mias;
+            if(suyas===0){
+              p = 0.01;
+              por += " (nessuna M/T avversaria: distruggerebbe solo le mie)";
+            } else if(saldo < 0){
+              p = 0.05 + prisa*0.15;
+              por += ` (scambio sfavorevole: ${suyas} avversarie contro ${mias} mie)`;
+            } else if(saldo===0){
+              p = mias===0 ? 2.8 + suyas*0.5 : 0.7 + prisa*0.6;
+              por += mias ? " (scambio pari: meglio conservarla)" : " (pulizia gratuita)";
+            } else {
+              p = 3.8 + saldo*0.9 + suyas*0.25;
+              por += ` (vantaggio netto +${saldo} M/T)`;
+            }
+          } else if(n>=2){
             p = (suyas>=2 && suyas>mias) ? 4.4 + suyas*0.4 : 0.4 + prisa;
             if(exp("masiva") && suyas<3 && !v.monstruos.length) p = 0.3 + prisa*1.2;
           } else p = suyas ? 3.0 : 0.2;
@@ -458,7 +492,9 @@ export function crearCerebro({ X, duel, db, names, nivel="normal", yo=1, log, la
        trampa de masa y tú ya vas ganando, no metas todo el campo. */
     const trampasFuera = rivalUso(v,"Mirror Force") || rivalUso(v,"Torrential Tribute");
     const dañoDisponible = dañoLetalEstimado(ataques.map(a=>a.c), rivales);
-    const lethalClaro = dañoDisponible >= v.lp.rival;
+    /* Con un mostro coperto non esiste un "lethal chiaro": un giocatore reale
+       non conosce la sua DEF e non deve comportarsi come se sapesse che vale 1600. */
+    const lethalClaro = !rivales.some(r=>r.bocaAbajo) && dañoDisponible >= v.lp.rival;
     /* La prudencia contra Mirror/Torrential nunca puede hacer que el bot
        deje pasar una victoria que ya está en mesa. Cuando detectamos lethal,
        tampoco filtramos atacantes por la heurística de "valor": se intenta
@@ -496,13 +532,39 @@ export function crearCerebro({ X, duel, db, names, nivel="normal", yo=1, log, la
 
     const puntuar = o => {
       const inf = infoDe(o.c), nom = canon(o.c.nombre);
-      // Scapegoat: justo lo que se encadena en el turno rival
-      if(nom==="Scapegoat") return v.turnoMio ? -1 : (v.monstruos.length===0 ? 6 : 3);
-      if(nom==="Book of Moon") return n>=2 ? 3.5 : 2;
-      if(inf.rol==="trapMass") return v.monstruosRival.length>=2 ? 6 : 1.5;
-      if(inf.rol==="trapRemoval") return 4;
+      const atacante = atacanteActual();
+      const atkEntrante = atacante ? atk(atacante) : 0;
+      const golpeLetal = atacante && atkEntrante >= v.lp.mio;
+      const objetivoMio = duel.ataqueActual?.targetUid
+        ? v.monstruos.find(c=>c.uid===duel.ataqueActual.targetUid) : null;
+
+      // Scapegoat: difesa d'emergenza o valore tempo reale, non risposta automatica.
+      if(nom==="Scapegoat"){
+        if(v.turnoMio) return -1;
+        if(golpeLetal) return 9;
+        if(v.monstruos.length===0 && atkEntrante>=1500) return 6;
+        return v.monstruos.length<=1 ? 3.2 : 1.5;
+      }
+      if(nom==="Book of Moon"){
+        if(golpeLetal) return 8;
+        if(objetivoMio && valorCarta(objetivoMio)>=1.4) return 5;
+        return atkEntrante>=1800 ? 4.2 : 2.2;
+      }
+      if(inf.rol==="trapMass"){
+        const atacando = v.monstruosRival.filter(c=>!c.bocaAbajo && !c.defensa).length;
+        if(golpeLetal) return 9;
+        return atacando>=2 ? 6.5 : (atkEntrante>=2200 ? 3.4 : 1.8);
+      }
+      if(inf.rol==="trapRemoval"){
+        if(golpeLetal) return 9;
+        if(!atacante) return 1.5;
+        return atkEntrante>=1700 || valorCarta(atacante)>=1.4 ? 4.6 : 2.0;
+      }
       if(inf.rol==="counter") return exp("counter") ? (v.lp.mio>4000 ? 4.5 : 1) : 2;
-      if(inf.rol==="removal" && inf.rapida) return 4;
+      if(inf.rol==="removal" && inf.rapida){
+        if(golpeLetal) return 9;
+        return atkEntrante>=1800 ? 4.8 : 2.2;
+      }
       if(inf.rol==="spellRemoval"){
         const arriba = duel.cadena?.[duel.cadena.length-1] ?? null;
         const activa = cartaDeCadena(arriba);
@@ -570,19 +632,43 @@ export function crearCerebro({ X, duel, db, names, nivel="normal", yo=1, log, la
       traza(`objetivo: ${elegido.objetivo.nombre}`);
       return { type:R.SELECT_CARD, indicies:[elegido.i] };
     }
-    /* Thousand-Eyes Restrict absorbe copiando el ATK del objetivo. Si
-       absorbe una carta tapada se queda en 0 ATK y ataca con 0: medido en
-       check-cartas.mjs (boca arriba → 1900, tapada → 0). Así que de los
-       monstruos del rival, solo boca arriba, y el de más ataque. */
+    /* Selezione bersagli contestuale. Prima QUALSIASI SELECT_CARD sui
+       mostri fuori dalla Battle Phase usava la politica di Thousand-Eyes:
+       era corretta per TER/Snatch, ma sbagliata per Tsukuyomi, Book, Ring,
+       ecc. La sorgente dell'effetto è l'ultimo anello della catena. */
     if(m.type===T.SELECT_CARD && lista.length>1
        && lista.every(l=>l.location===4) && !enBatalla){
-      const rivales = lista.map((l,i)=>({ i, l, c:cartaDeLista(l),
-                                          tapada:!!(l.position & 0x0a) }))
-                           .filter(x=>x.l.controller!==yo);
-      const caraArriba = rivales.filter(x=>!x.tapada);
-      if(caraArriba.length){
-        const mejor = caraArriba.sort((a,b)=>poder(b.c)-poder(a.c))[0];
-        traza(`objetivo boca arriba: ${mejor.c.nombre}`);
+      const arriba = duel.cadena?.[duel.cadena.length-1] ?? null;
+      const fuente = cartaDeCadena(arriba);
+      const nomFuente = canon(fuente?.nombre);
+      const cand = lista.map((l,i)=>({ i, l, c:cartaDeLista(l),
+                                       tapada:!!(l.position & 0x0a) }));
+      const rivales = cand.filter(x=>x.l.controller!==yo);
+      const mios = cand.filter(x=>x.l.controller===yo);
+      const caraArribaRival = rivales.filter(x=>!x.tapada);
+      let mejor = null;
+
+      if(["Thousand-Eyes Restrict","Snatch Steal"].includes(nomFuente)){
+        mejor = [...caraArribaRival].sort((a,b)=>
+          (valorCarta(b.c)+poder(b.c)/1800) - (valorCarta(a.c)+poder(a.c)/1800))[0] ?? null;
+      } else if(nomFuente==="Book of Moon"){
+        const uidAtk = duel.ataqueActual?.attackerUid;
+        mejor = cand.find(x => duel.resolve(x.l,x.l.code)?.uid===uidAtk) ?? null;
+        if(!mejor) mejor = [...caraArribaRival].sort((a,b)=>poder(b.c)-poder(a.c))[0] ?? null;
+      } else if(nomFuente==="Tsukuyomi"){
+        const flipPropio = mios.filter(x=>!x.tapada &&
+          (infoDe(x.c).rol==="flip" || infoDe(x.c).colocarPreferente))
+          .sort((a,b)=>valorCarta(b.c)-valorCarta(a.c))[0];
+        mejor = flipPropio ?? [...caraArribaRival].sort((a,b)=>poder(b.c)-poder(a.c))[0] ?? null;
+      } else if(nomFuente==="Ring of Destruction"){
+        const seguros = caraArribaRival.filter(x=>atk(x.c) < v.lp.mio);
+        const letales = seguros.filter(x=>atk(x.c) >= v.lp.rival)
+                              .sort((a,b)=>atk(a.c)-atk(b.c));
+        mejor = letales[0] ?? seguros.sort((a,b)=>poder(b.c)-poder(a.c))[0] ?? null;
+      }
+
+      if(mejor){
+        traza(`objetivo ${nomFuente||"efecto"}: ${mejor.c.nombre||"carta visibile"}`);
         return { type:R.SELECT_CARD, indicies:[mejor.i] };
       }
     }
