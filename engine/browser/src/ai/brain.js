@@ -116,6 +116,13 @@ export function crearCerebro({ X, duel, db, names, nivel="normal", yo=1, log, la
     return code ? { code, nombre:names[code]?.name ?? "", datos:db.get(code) ?? null,
                     bocaAbajo:false, defensa:false } : null;
   };
+  const atacanteActual = () => {
+    const uid = duel.ataqueActual?.attackerUid;
+    const real = uid ? duel.cards.get(uid) : null;
+    if(!real) return null;
+    return { code:real.code, nombre:names[real.code]?.name ?? "",
+             datos:db.get(real.code) ?? null, bocaAbajo:false, defensa:false };
+  };
 
   /* Estimación deliberadamente conservadora del daño disponible este turno.
      Sirve solo para una cosa: no frenar los ataques por miedo al backrow
@@ -458,7 +465,9 @@ export function crearCerebro({ X, duel, db, names, nivel="normal", yo=1, log, la
        trampa de masa y tú ya vas ganando, no metas todo el campo. */
     const trampasFuera = rivalUso(v,"Mirror Force") || rivalUso(v,"Torrential Tribute");
     const dañoDisponible = dañoLetalEstimado(ataques.map(a=>a.c), rivales);
-    const lethalClaro = dañoDisponible >= v.lp.rival;
+    /* Con un mostro coperto non esiste un "lethal chiaro": un giocatore reale
+       non conosce la sua DEF e non deve comportarsi come se sapesse che vale 1600. */
+    const lethalClaro = !rivales.some(r=>r.bocaAbajo) && dañoDisponible >= v.lp.rival;
     /* La prudencia contra Mirror/Torrential nunca puede hacer que el bot
        deje pasar una victoria que ya está en mesa. Cuando detectamos lethal,
        tampoco filtramos atacantes por la heurística de "valor": se intenta
@@ -496,13 +505,39 @@ export function crearCerebro({ X, duel, db, names, nivel="normal", yo=1, log, la
 
     const puntuar = o => {
       const inf = infoDe(o.c), nom = canon(o.c.nombre);
-      // Scapegoat: justo lo que se encadena en el turno rival
-      if(nom==="Scapegoat") return v.turnoMio ? -1 : (v.monstruos.length===0 ? 6 : 3);
-      if(nom==="Book of Moon") return n>=2 ? 3.5 : 2;
-      if(inf.rol==="trapMass") return v.monstruosRival.length>=2 ? 6 : 1.5;
-      if(inf.rol==="trapRemoval") return 4;
+      const atacante = atacanteActual();
+      const atkEntrante = atacante ? atk(atacante) : 0;
+      const golpeLetal = atacante && atkEntrante >= v.lp.mio;
+      const objetivoMio = duel.ataqueActual?.targetUid
+        ? v.monstruos.find(c=>c.uid===duel.ataqueActual.targetUid) : null;
+
+      // Scapegoat: difesa d'emergenza o valore tempo reale, non risposta automatica.
+      if(nom==="Scapegoat"){
+        if(v.turnoMio) return -1;
+        if(golpeLetal) return 9;
+        if(v.monstruos.length===0 && atkEntrante>=1500) return 6;
+        return v.monstruos.length<=1 ? 3.2 : 1.5;
+      }
+      if(nom==="Book of Moon"){
+        if(golpeLetal) return 8;
+        if(objetivoMio && valorCarta(objetivoMio)>=1.4) return 5;
+        return atkEntrante>=1800 ? 4.2 : 2.2;
+      }
+      if(inf.rol==="trapMass"){
+        const atacando = v.monstruosRival.filter(c=>!c.bocaAbajo && !c.defensa).length;
+        if(golpeLetal) return 9;
+        return atacando>=2 ? 6.5 : (atkEntrante>=2200 ? 3.4 : 1.8);
+      }
+      if(inf.rol==="trapRemoval"){
+        if(golpeLetal) return 9;
+        if(!atacante) return 1.5;
+        return atkEntrante>=1700 || valorCarta(atacante)>=1.4 ? 4.6 : 2.0;
+      }
       if(inf.rol==="counter") return exp("counter") ? (v.lp.mio>4000 ? 4.5 : 1) : 2;
-      if(inf.rol==="removal" && inf.rapida) return 4;
+      if(inf.rol==="removal" && inf.rapida){
+        if(golpeLetal) return 9;
+        return atkEntrante>=1800 ? 4.8 : 2.2;
+      }
       if(inf.rol==="spellRemoval"){
         const arriba = duel.cadena?.[duel.cadena.length-1] ?? null;
         const activa = cartaDeCadena(arriba);
