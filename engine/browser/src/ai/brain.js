@@ -286,8 +286,29 @@ export function crearCerebro({ X, duel, db, names, nivel="normal", yo=1, log, la
           break;
         }
         case "massRemoval": {
-          const suyas = v.backrowRival.length, mias = v.backrow.length;
-          if(n>=2){
+          const suyas = v.backrowRival.length;
+          /* Se Heavy Storm parte già settata, non va contata come perdita:
+             una carta attivata andrebbe comunque al Cimitero dopo la risoluzione. */
+          const realActiva = duel.resolve?.(l, l.code) ?? null;
+          const propiaActivaEnCampo = realActiva?.controller===yo && realActiva?.location===8;
+          const mias = Math.max(0, v.backrow.length - (propiaActivaEnCampo ? 1 : 0));
+
+          if(nom==="Heavy Storm"){
+            const saldo = suyas - mias;
+            if(suyas===0){
+              p = 0.01;
+              por += " (nessuna M/T avversaria: distruggerebbe solo le mie)";
+            } else if(saldo < 0){
+              p = 0.05 + prisa*0.15;
+              por += ` (scambio sfavorevole: ${suyas} avversarie contro ${mias} mie)`;
+            } else if(saldo===0){
+              p = mias===0 ? 2.8 + suyas*0.5 : 0.7 + prisa*0.6;
+              por += mias ? " (scambio pari: meglio conservarla)" : " (pulizia gratuita)";
+            } else {
+              p = 3.8 + saldo*0.9 + suyas*0.25;
+              por += ` (vantaggio netto +${saldo} M/T)`;
+            }
+          } else if(n>=2){
             p = (suyas>=2 && suyas>mias) ? 4.4 + suyas*0.4 : 0.4 + prisa;
             if(exp("masiva") && suyas<3 && !v.monstruos.length) p = 0.3 + prisa*1.2;
           } else p = suyas ? 3.0 : 0.2;
