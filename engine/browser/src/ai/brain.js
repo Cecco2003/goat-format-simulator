@@ -761,7 +761,47 @@ export function crearCerebro({ X, duel, db, names, nivel="normal", yo=1, log, la
   }
   function siNo(m, tipo){
     if(n===0) return { type:tipo, yes: azar(.6) };
-    return { type:tipo, yes:true };     // los efectos opcionales suelen convenir
+    const v=vistaDe(duel,yo,db,names);
+    const nom=canon(names[m.code]?.name ?? "");
+
+    if(nom==="Sinister Serpent") return { type:tipo, yes:true };
+
+    if(nom==="D.D. Warrior Lady"){
+      const b=duel.ultimaBatalla;
+      if(!b) return { type:tipo, yes:false };
+      const a=b.attackerUid ? duel.cards.get(b.attackerUid) : null;
+      const t=b.targetUid ? duel.cards.get(b.targetUid) : null;
+      const mia = [a,t].find(c=>c?.controller===yo && canon(names[c.code]?.name)==="D.D. Warrior Lady");
+      const otro = mia===a ? t : mia===t ? a : null;
+      if(!mia || !otro) return { type:tipo, yes:false };
+      const oc={code:otro.code,nombre:names[otro.code]?.name??"",datos:db.get(otro.code)??null,
+                bocaAbajo:false,defensa:!!(otro.position&0x0c)};
+      const miaMuere = mia===a ? b.attackerDestroyed : b.targetDestroyed;
+      const merece = miaMuere || atk(oc)>=1600 || valorCarta(oc)>=1.2;
+      traza(`D.D. Warrior Lady: ${merece?"destierra":"conserva"}`,
+            { rival:oc.nombre, atk:atk(oc), miaMuere });
+      return { type:tipo, yes:merece };
+    }
+
+    if(nom==="Gilasaursus" || nom==="Gilasaurus"){
+      const mejor=[...v.cementerio].filter(c=>c.datos?.type&1)
+        .sort((a,b)=>(valorCarta(b)+atk(b)/2000)-(valorCarta(a)+atk(a)/2000))[0];
+      return { type:tipo, yes:!!mejor && (atk(mejor)>=1400 || valorCarta(mejor)>=1.1) };
+    }
+
+    if(nom==="Night Assailant"){
+      const recuperable=v.cementerio.some(c=>c.datos?.type&0x200000);
+      return { type:tipo, yes:recuperable };
+    }
+
+    if(nom==="Black Luster Soldier - Envoy of the Beginning")
+      return { type:tipo, yes:true };
+
+    /* Per gli effetti non ancora classificati restiamo conservativi rispetto
+       alla vecchia IA: accettiamo l'effetto, ma lo segnaliamo nel log così
+       i casi reali possono essere trasformati in regole specifiche. */
+    traza(`effetto opzionale non classificato: ${nom||m.code} → sì`);
+    return { type:tipo, yes:true };
   }
 
   /* ══════════ ENTRADA ══════════ */
