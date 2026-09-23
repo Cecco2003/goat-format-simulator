@@ -1,0 +1,17 @@
+name: AI regression checks
+
+on:
+  push:
+    branches: [ main, improve-bot-tactics ]
+  pull_request:
+
+jobs:
+  ai-tactics:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Run tactical bot regressions
+        run: node engine/browser/check-ai-tactics.mjs
