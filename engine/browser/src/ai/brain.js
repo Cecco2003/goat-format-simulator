@@ -546,14 +546,36 @@ export function crearCerebro({ X, duel, db, names, nivel="normal", yo=1, log, la
         return v.monstruos.length<=1 ? 3.2 : 1.5;
       }
       if(nom==="Book of Moon"){
-        if(golpeLetal) return 8;
-        if(objetivoMio && valorCarta(objetivoMio)>=1.4) return 5;
+        const arriba = duel.cadena?.[duel.cadena.length-1] ?? null;
+        const activa = cartaDeCadena(arriba);
+        const rolArriba = activa ? rolDe(activa) : "";
+        const propioValioso = [...v.monstruos].filter(c=>!c.bocaAbajo)
+          .sort((a,b)=>(valorCarta(b)+poder(b)/1800)-(valorCarta(a)+poder(a)/1800))[0];
+        if(golpeLetal) return 8.5;
+        if(objetivoMio && valorCarta(objetivoMio)>=1.4) return 5.2;
+        if(arriba?.controller===v.rival && propioValioso &&
+           ["removal","equipSteal"].includes(rolArriba)) return 5.6;
         return atkEntrante>=1800 ? 4.2 : 2.2;
       }
       if(inf.rol==="trapMass"){
-        const atacando = v.monstruosRival.filter(c=>!c.bocaAbajo && !c.defensa).length;
-        if(golpeLetal) return 9;
-        return atacando>=2 ? 6.5 : (atkEntrante>=2200 ? 3.4 : 1.8);
+        if(nom==="Mirror Force"){
+          const atacando = v.monstruosRival.filter(c=>!c.bocaAbajo && !c.defensa).length;
+          const valorAtacantes = v.monstruosRival.filter(c=>!c.bocaAbajo && !c.defensa)
+            .reduce((sum,c)=>sum+valorCarta(c)+atk(c)/2000,0);
+          if(golpeLetal) return 9.5;
+          if(atacando>=2 && valorAtacantes>=2.5) return 7;
+          return atkEntrante>=2200 ? 4.0 : 1.6;
+        }
+        if(nom==="Torrential Tribute"){
+          const valorMio = v.monstruos.reduce((sum,c)=>sum+valorCarta(c)+poder(c)/2200,0);
+          const valorRival = v.monstruosRival.reduce((sum,c)=>sum+valorCarta(c)+poder(c)/2200,0);
+          const saldo = valorRival-valorMio;
+          if(v.monstruosRival.length>=3 && saldo>0) return 8;
+          if(saldo>=1.3) return 6.5;
+          if(v.monstruos.length===0 && v.monstruosRival.length>=2) return 7;
+          return saldo>0.4 ? 3.2 : 0.8;
+        }
+        return v.monstruosRival.length>=2 ? 5.5 : 1.5;
       }
       if(inf.rol==="trapRemoval"){
         if(golpeLetal) return 9;
@@ -562,6 +584,16 @@ export function crearCerebro({ X, duel, db, names, nivel="normal", yo=1, log, la
       }
       if(inf.rol==="counter") return exp("counter") ? (v.lp.mio>4000 ? 4.5 : 1) : 2;
       if(inf.rol==="removal" && inf.rapida){
+        if(nom==="Ring of Destruction"){
+          const objetivos=v.monstruosRival.filter(c=>!c.bocaAbajo && atk(c)>0);
+          const seguros=objetivos.filter(c=>atk(c)<v.lp.mio);
+          const mata=seguros.some(c=>atk(c)>=v.lp.rival);
+          if(mata) return 9.5;
+          if(!seguros.length) return 0.1;
+          const mejor=Math.max(...seguros.map(c=>atk(c)));
+          if(golpeLetal && mejor< v.lp.mio) return 8.5;
+          return mejor>=1800 ? 4.8 : 2.0;
+        }
         if(golpeLetal) return 9;
         return atkEntrante>=1800 ? 4.8 : 2.2;
       }
