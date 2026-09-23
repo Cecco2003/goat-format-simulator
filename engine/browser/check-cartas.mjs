@@ -288,5 +288,45 @@ console.log("═══ CARTAS, UNA A UNA ═══\n");
     `desterradas: ${fueraTuya?"ella":"—"} / ${fueraSuya?"el rival":"—"}`);
 }
 
+
+/* ────────────────────────────────────────────────────────────────
+   11. NOBLEMAN OF CROSSOUT — se un Flip, rimuove anche le copie dai Deck
+   ──────────────────────────────────────────────────────────────── */
+{
+  const e = await montar(
+    { mano:["Nobleman of Crossout"] },
+    { monstruos:[{carta:"Magician of Faith", pos:P.FACEDOWN_DEFENSE}],
+      deck:["Magician of Faith","Magician of Faith","Magician of Faith"] },
+    { tamañoDeck:20, roboInicial:0 });
+  let activada=false, objetivoElegido=false;
+  await e.correr((m)=>{
+    if(m.type===T.SELECT_IDLECMD){
+      if(!activada){
+        const r=activar(m,"Nobleman of Crossout");
+        if(r){ activada=true; return r; }
+      }
+      if(activada && objetivoElegido) return "PARAR";
+      return pasarIdle(m);
+    }
+    if(m.type===T.SELECT_CARD && activada && !objetivoElegido){
+      const i=(m.selects??[]).findIndex(x=>x.controller===1 && x.location===L.MZONE);
+      objetivoElegido=true;
+      return elegir(m,i<0?0:i);
+    }
+    if(m.type===T.SELECT_CHAIN) return { type:R.SELECT_CHAIN, index:null };
+    return null;
+  }, 600);
+
+  const fuori0=e.zona(0,L.REMOVED).filter(c=>raiz(c.nombre)==="Magician of Faith").length;
+  const fuori1=e.zona(1,L.REMOVED).filter(c=>raiz(c.nombre)==="Magician of Faith").length;
+  const deck1=e.zona(1,L.DECK).filter(c=>raiz(c.nombre)==="Magician of Faith").length;
+  comprobar("Nobleman rimuove il Flip bersaglio",
+    activada && objetivoElegido && fuori1>=1,
+    `Magician of Faith rimosse lato avversario: ${fuori1}`);
+  comprobar("Nobleman rimuove anche tutte le copie dello stesso Flip dai Deck",
+    fuori1>=4 && deck1===0,
+    `rimosse avversarie ${fuori1}, rimaste nel Deck avversario ${deck1}, rimosse proprie ${fuori0}`);
+}
+
 const ok = pruebas.filter(p=>p[1]).length;
 console.log(`\n${ok}/${pruebas.length} comprobaciones de carta pasan`);

@@ -12,6 +12,9 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 24
       - name: Run tactical bot regressions
         run: node engine/browser/check-ai-tactics.mjs
+      - name: Run card/ruling scenarios
+        working-directory: engine/browser
+        run: node check-cartas.mjs

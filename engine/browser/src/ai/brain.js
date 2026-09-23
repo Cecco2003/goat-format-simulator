@@ -78,6 +78,7 @@ export function crearCerebro({ X, duel, db, names, nivel="normal", yo=1, log, la
 
   const nombreDe = c => names[c.code]?.name ?? "";
   let ultimoAtacante = null;   // para elegir bien el objetivo del ataque
+  let efectoPendiente = null;   // carta che ha appena aperto una selezione bersaglio/costo
   const giros = new Map();     // uid → veces que le hemos cambiado la posición
   const cartaDeLista = l => {
     /* I messaggi del core possono trasportare internamente il code anche per
@@ -434,6 +435,8 @@ export function crearCerebro({ X, duel, db, names, nivel="normal", yo=1, log, la
       traza(elegido.por, { puntos:+elegido.puntos.toFixed(2) });
       if(elegido.action===IA.SELECT_POS_CHANGE && elegido.uid!=null)
         giros.set(elegido.uid, (giros.get(elegido.uid) ?? 0) + 1);
+      if(elegido.action===IA.SELECT_ACTIVATE)
+        efectoPendiente = cartaDeLista((m.activates||[])[elegido.index] ?? {});
       return { type:R.SELECT_IDLECMD, action:elegido.action, index:elegido.index };
     }
     // sin nada que merezca la pena: a la batalla o a terminar
@@ -546,14 +549,36 @@ export function crearCerebro({ X, duel, db, names, nivel="normal", yo=1, log, la
         return v.monstruos.length<=1 ? 3.2 : 1.5;
       }
       if(nom==="Book of Moon"){
-        if(golpeLetal) return 8;
-        if(objetivoMio && valorCarta(objetivoMio)>=1.4) return 5;
+        const arriba = duel.cadena?.[duel.cadena.length-1] ?? null;
+        const activa = cartaDeCadena(arriba);
+        const rolArriba = activa ? rolDe(activa) : "";
+        const propioValioso = [...v.monstruos].filter(c=>!c.bocaAbajo)
+          .sort((a,b)=>(valorCarta(b)+poder(b)/1800)-(valorCarta(a)+poder(a)/1800))[0];
+        if(golpeLetal) return 8.5;
+        if(objetivoMio && valorCarta(objetivoMio)>=1.4) return 5.2;
+        if(arriba?.controller===v.rival && propioValioso &&
+           ["removal","equipSteal"].includes(rolArriba)) return 5.6;
         return atkEntrante>=1800 ? 4.2 : 2.2;
       }
       if(inf.rol==="trapMass"){
-        const atacando = v.monstruosRival.filter(c=>!c.bocaAbajo && !c.defensa).length;
-        if(golpeLetal) return 9;
-        return atacando>=2 ? 6.5 : (atkEntrante>=2200 ? 3.4 : 1.8);
+        if(nom==="Mirror Force"){
+          const atacando = v.monstruosRival.filter(c=>!c.bocaAbajo && !c.defensa).length;
+          const valorAtacantes = v.monstruosRival.filter(c=>!c.bocaAbajo && !c.defensa)
+            .reduce((sum,c)=>sum+valorCarta(c)+atk(c)/2000,0);
+          if(golpeLetal) return 9.5;
+          if(atacando>=2 && valorAtacantes>=2.5) return 7;
+          return atkEntrante>=2200 ? 4.0 : 1.6;
+        }
+        if(nom==="Torrential Tribute"){
+          const valorMio = v.monstruos.reduce((sum,c)=>sum+valorCarta(c)+poder(c)/2200,0);
+          const valorRival = v.monstruosRival.reduce((sum,c)=>sum+valorCarta(c)+poder(c)/2200,0);
+          const saldo = valorRival-valorMio;
+          if(v.monstruosRival.length>=3 && saldo>0) return 8;
+          if(saldo>=1.3) return 6.5;
+          if(v.monstruos.length===0 && v.monstruosRival.length>=2) return 7;
+          return saldo>0.4 ? 3.2 : 0.8;
+        }
+        return v.monstruosRival.length>=2 ? 5.5 : 1.5;
       }
       if(inf.rol==="trapRemoval"){
         if(golpeLetal) return 9;
@@ -562,6 +587,16 @@ export function crearCerebro({ X, duel, db, names, nivel="normal", yo=1, log, la
       }
       if(inf.rol==="counter") return exp("counter") ? (v.lp.mio>4000 ? 4.5 : 1) : 2;
       if(inf.rol==="removal" && inf.rapida){
+        if(nom==="Ring of Destruction"){
+          const objetivos=v.monstruosRival.filter(c=>!c.bocaAbajo && atk(c)>0);
+          const seguros=objetivos.filter(c=>atk(c)<v.lp.mio);
+          const mata=seguros.some(c=>atk(c)>=v.lp.rival);
+          if(mata) return 9.5;
+          if(!seguros.length) return 0.1;
+          const mejor=Math.max(...seguros.map(c=>atk(c)));
+          if(golpeLetal && mejor< v.lp.mio) return 8.5;
+          return mejor>=1800 ? 4.8 : 2.0;
+        }
         if(golpeLetal) return 9;
         return atkEntrante>=1800 ? 4.8 : 2.2;
       }
@@ -594,6 +629,7 @@ export function crearCerebro({ X, duel, db, names, nivel="normal", yo=1, log, la
                           .filter(o=>o.p>2.4).sort((a,b)=>b.p-a.p);
     if(intento < orden.length){
       traza(`encadena ${orden[intento].c.nombre}`);
+      efectoPendiente = orden[intento].c;
       return { type:R.SELECT_CHAIN, index:orden[intento].i };
     }
     return { type:R.SELECT_CHAIN, index:null };
@@ -639,7 +675,7 @@ export function crearCerebro({ X, duel, db, names, nivel="normal", yo=1, log, la
     if(m.type===T.SELECT_CARD && lista.length>1
        && lista.every(l=>l.location===4) && !enBatalla){
       const arriba = duel.cadena?.[duel.cadena.length-1] ?? null;
-      const fuente = cartaDeCadena(arriba);
+      const fuente = cartaDeCadena(arriba) ?? efectoPendiente;
       const nomFuente = canon(fuente?.nombre);
       const cand = lista.map((l,i)=>({ i, l, c:cartaDeLista(l),
                                        tapada:!!(l.position & 0x0a) }));
@@ -672,6 +708,34 @@ export function crearCerebro({ X, duel, db, names, nivel="normal", yo=1, log, la
         return { type:R.SELECT_CARD, indicies:[mejor.i] };
       }
     }
+    /* Bersagli Magia/Trappola. Se abbiamo già deciso di spendere MST,
+       Dust Tornado o Breaker, almeno colpiamo prima le permanenti note che
+       stanno generando valore; solo dopo si passa alle backrow sconosciute. */
+    if(m.type===T.SELECT_CARD && lista.length>1 && lista.every(l=>l.location===8)){
+      const arriba = duel.cadena?.[duel.cadena.length-1] ?? null;
+      const fuente = cartaDeCadena(arriba) ?? efectoPendiente;
+      const nomFuente = canon(fuente?.nombre);
+      const ruolo = fuente ? rolDe(fuente) : "";
+      const rompe = ruolo==="spellRemoval" || nomFuente==="Breaker the Magical Warrior";
+      if(rompe){
+        const cand=lista.map((l,i)=>({i,l,c:cartaDeLista(l),tapada:!!(l.position&0x0a)}))
+          .filter(x=>x.l.controller!==yo);
+        const conocidas=cand.filter(x=>!x.tapada).map(x=>{
+          const r=rolDe(x.c);
+          let p=valorCarta(x.c);
+          if(["equipSteal","revival"].includes(r)) p+=4;
+          if(efectoDependeDePermanecer(x.c)) p+=2.5;
+          return {...x,p};
+        }).sort((a,b)=>b.p-a.p);
+        const ocultas=cand.filter(x=>x.tapada);
+        const mejor=conocidas[0] ?? ocultas[0] ?? cand[0];
+        if(mejor){
+          traza(`objetivo ${nomFuente||"rimozione M/T"}: ${mejor.c.nombre||"backrow coperta"}`);
+          return {type:R.SELECT_CARD,indicies:[mejor.i]};
+        }
+      }
+    }
+
     const esTributo = m.type===T.SELECT_TRIBUTE;
     const esDescarte = m.type===T.SELECT_CARD && m.selects?.every(l=>l.location===2);
     const puntuar = (l)=>{
@@ -729,7 +793,47 @@ export function crearCerebro({ X, duel, db, names, nivel="normal", yo=1, log, la
   }
   function siNo(m, tipo){
     if(n===0) return { type:tipo, yes: azar(.6) };
-    return { type:tipo, yes:true };     // los efectos opcionales suelen convenir
+    const v=vistaDe(duel,yo,db,names);
+    const nom=canon(names[m.code]?.name ?? "");
+
+    if(nom==="Sinister Serpent") return { type:tipo, yes:true };
+
+    if(nom==="D.D. Warrior Lady"){
+      const b=duel.ultimaBatalla;
+      if(!b) return { type:tipo, yes:false };
+      const a=b.attackerUid ? duel.cards.get(b.attackerUid) : null;
+      const t=b.targetUid ? duel.cards.get(b.targetUid) : null;
+      const mia = [a,t].find(c=>c?.controller===yo && canon(names[c.code]?.name)==="D.D. Warrior Lady");
+      const otro = mia===a ? t : mia===t ? a : null;
+      if(!mia || !otro) return { type:tipo, yes:false };
+      const oc={code:otro.code,nombre:names[otro.code]?.name??"",datos:db.get(otro.code)??null,
+                bocaAbajo:false,defensa:!!(otro.position&0x0c)};
+      const miaMuere = mia===a ? b.attackerDestroyed : b.targetDestroyed;
+      const merece = miaMuere || atk(oc)>=1600 || valorCarta(oc)>=1.2;
+      traza(`D.D. Warrior Lady: ${merece?"destierra":"conserva"}`,
+            { rival:oc.nombre, atk:atk(oc), miaMuere });
+      return { type:tipo, yes:merece };
+    }
+
+    if(nom==="Gilasaursus" || nom==="Gilasaurus"){
+      const mejor=[...v.cementerio].filter(c=>c.datos?.type&1)
+        .sort((a,b)=>(valorCarta(b)+atk(b)/2000)-(valorCarta(a)+atk(a)/2000))[0];
+      return { type:tipo, yes:!!mejor && (atk(mejor)>=1400 || valorCarta(mejor)>=1.1) };
+    }
+
+    if(nom==="Night Assailant"){
+      const recuperable=v.cementerio.some(c=>c.datos?.type&0x200000);
+      return { type:tipo, yes:recuperable };
+    }
+
+    if(nom==="Black Luster Soldier - Envoy of the Beginning")
+      return { type:tipo, yes:true };
+
+    /* Per gli effetti non ancora classificati restiamo conservativi rispetto
+       alla vecchia IA: accettiamo l'effetto, ma lo segnaliamo nel log così
+       i casi reali possono essere trasformati in regole specifiche. */
+    traza(`effetto opzionale non classificato: ${nom||m.code} → sì`);
+    return { type:tipo, yes:true };
   }
 
   /* ══════════ ENTRADA ══════════ */

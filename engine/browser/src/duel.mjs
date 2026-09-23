@@ -41,6 +41,8 @@ export class GoatDuel {
     this.desyncs = 0;                // veces que el espejo no cuadró con el core
     this.cadena = [];                // eslabones vivos: {code, controller, uid}
     this.ataqueActual = null;         // {attackerUid,targetUid}: utile alla IA nelle finestre di risposta
+    this.ultimaBatalla = null;         // contesto post-danno per effetti opzionali come D.D. Warrior Lady
+    this.deckBanishes = new Map();     // controller:code -> quante copie rimosse direttamente dal Deck nella catena
     this.finished = false;
   }
   emptySide(){
@@ -89,7 +91,7 @@ export class GoatDuel {
   }
   newCard(code, controller, location){
     const c = { uid:++this.uid, code, controller, location, sequence:0,
-                position:POS.FACEDOWN_DEFENSE };
+                position:POS.FACEDOWN_DEFENSE, knownTo:new Set([controller]) };
     this.cards.set(c.uid, c); return c;
   }
 
@@ -190,7 +192,21 @@ export class GoatDuel {
                        sequence:from.sequence, position:card.position };
         this.insert(card, to.controller, to.location, to.sequence);
         card.position = to.position ?? card.position;
+        /* Memoria lecita: una carta pubblica o esplicitamente rivelata resta
+           conosciuta anche se poi viene settata. Se torna nel Deck/Extra e
+           viene nascosta, l'avversario perde invece l'identità della singola copia. */
+        card.knownTo ??= new Set([card.controller]);
+        if(to.location===LOC.DECK || to.location===LOC.EXTRA){
+          card.knownTo = new Set([to.controller]);
+        } else if(to.location===LOC.GRAVE || to.location===LOC.REMOVED ||
+                  ((to.location===LOC.MZONE || to.location===LOC.SZONE) && !isFaceDown(card.position))){
+          card.knownTo.add(0); card.knownTo.add(1);
+        }
         this.reindex(from.controller, from.location);
+        if(from.location===LOC.DECK && to.location===LOC.REMOVED && card.code){
+          const k=`${to.controller}:${card.code}`;
+          this.deckBanishes.set(k,(this.deckBanishes.get(k)??0)+1);
+        }
         this.emit("move",{ uid:card.uid, code:card.code, from:prev,
           to:{ controller:to.controller, location:to.location, sequence:to.sequence,
                position:card.position, faceDown:isFaceDown(card.position),
@@ -230,8 +246,13 @@ export class GoatDuel {
       }
       case T.BATTLE: {
         const a=this.at(m.card.controller,m.card.location,m.card.sequence);
-        this.ataqueActual=null;
         const t=m.target?this.at(m.target.controller,m.target.location,m.target.sequence):null;
+        this.ultimaBatalla={
+          attackerUid:a?.uid ?? null, targetUid:t?.uid ?? null,
+          attackerDestroyed:!!m.card.destroyed,
+          targetDestroyed:!!m.target?.destroyed
+        };
+        this.ataqueActual=null;
         /* El mensaje trae quién muere y con cuánto: con eso se puede medir
            si la IA ataca bien o se suicida (ver analizar.mjs). */
         this.emit("battle",{ uid:a?.uid, targetUid:t?.uid ?? null,
@@ -245,7 +266,17 @@ export class GoatDuel {
       case T.SUMMONED: case T.SPSUMMONED: case T.FLIPSUMMONED:
         this.emit("summoned",{}); break;
       case T.CHAIN_SOLVED: this.emit("chainSolved",{ link:m.chain_size }); break;
-      case T.CHAIN_END:    this.cadena.length=0; this.emit("chainEnd",{}); break;
+      case T.CHAIN_END: {
+        if(this.deckBanishes.size){
+          const removals=[...this.deckBanishes.entries()].map(([k,count])=>{
+            const [controller,code]=k.split(":").map(Number);
+            return {controller,code,count};
+          });
+          this.emit("deckBanishSummary",{removals});
+          this.deckBanishes.clear();
+        }
+        this.cadena.length=0; this.emit("chainEnd",{}); break;
+      }
       case T.ATTACK: {
         const a = this.at(m.card.controller, m.card.location, m.card.sequence);
         const t = m.target ? this.at(m.target.controller, m.target.location, m.target.sequence) : null;
@@ -302,6 +333,8 @@ export class GoatDuel {
           const card = this.resolve(c, c.code);
           if(!card) continue;
           if(c.code) card.code = c.code;
+          card.knownTo ??= new Set([card.controller]);
+          card.knownTo.add(m.player);   // chi ha visto la carta può ricordarla
           vistas.push(card);
         }
         this.emit("revelar", { player:m.player, uids:vistas.map(c=>c.uid),

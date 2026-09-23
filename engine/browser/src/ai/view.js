@@ -11,14 +11,18 @@ const bocaAbajo = p => !!(p & 0x0a);
 
 export function vistaDe(duel, yo, db, names){
   const rival = 1-yo;
-  const carta = (c, oculta) => c && ({
-    uid:c.uid, code: oculta ? null : c.code,
-    nombre: oculta ? null : (names[c.code]?.name ?? null),
-    datos: oculta ? null : db.get(c.code) ?? null,
-    pos:c.position, bocaAbajo:bocaAbajo(c.position),
-    defensa: !!(c.position & 0x0c), mia: c.controller===yo,
-    sec:c.sequence,
-  });
+  const carta = (c, oculta) => {
+    if(!c) return null;
+    const conocida = !oculta || c.controller===yo || c.knownTo?.has?.(yo);
+    return {
+      uid:c.uid, code: conocida ? c.code : null,
+      nombre: conocida ? (names[c.code]?.name ?? null) : null,
+      datos: conocida ? (db.get(c.code) ?? null) : null,
+      pos:c.position, bocaAbajo:bocaAbajo(c.position),
+      defensa: !!(c.position & 0x0c), mia: c.controller===yo,
+      conocida, sec:c.sequence,
+    };
+  };
   const lista = (p, loc, oculta=false) =>
     (duel.zones[p][loc] ?? []).filter(Boolean).map(c=>carta(c,oculta));
   const campo = (p, loc) => (duel.zones[p][loc] ?? [])
