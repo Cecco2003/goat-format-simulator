@@ -302,22 +302,52 @@ export class GoatDuel {
       case T.WIN:
         this.finished = true; this.emit("win",{ player:m.player, reason:m.reason }); break;
       case T.SHUFFLE_SET_CARD: {
-        /* MSG_SHUFFLE_SET_CARD arriva come lista di posizioni prima/dopo.
-           Applichiamo il riordino in due tempi: prima catturiamo le carte,
-           poi liberiamo gli slot, infine le reinseriamo. Farlo in-place
-           perderebbe una carta quando due slot vengono scambiati. */
-        const moves=(m.cards??[]).map(x=>({x,card:this.at(x.from.controller,x.from.location,x.from.sequence)}));
+        /* Il protocollo NON descrive una normale serie di MOVE.
+           Per ogni carta manda prima la posizione originale e poi quella
+           risultante; una locazione finale a 0 significa "nessun cambio".
+           EDOPro mantiene quindi la carta nello slot originale in quel caso.
+           Il vecchio mirror invece svuotava prima tutti gli slot e poi
+           reinseriva solo le destinazioni non-zero: con una sola carta
+           coperta (caso tipico di Cyber Jar) la carta spariva dalla vista
+           pur restando correttamente nel core.
+
+           Replichiamo la semantica del client ufficiale: lavoriamo in-place
+           e, quando una carta cambia sequenza, scambiamo i due occupanti. */
+        const moves=(m.cards??[]).map(x=>({
+          x,
+          card:this.at(x.from.controller,x.from.location,x.from.sequence)
+        }));
         for(const {x,card} of moves){
           if(!card) continue;
-          const z=this.zones[x.from.controller]?.[x.from.location];
-          if(z && SLOTTED.has(x.from.location)) z[x.from.sequence]=null;
-        }
-        for(const {x,card} of moves){
-          if(!card) continue;
-          card.controller=x.to.controller; card.location=x.to.location; card.sequence=x.to.sequence;
-          card.position=x.to.position ?? card.position;
-          const z=this.zones[x.to.controller]?.[x.to.location];
-          if(z) z[x.to.sequence]=card;
+          const to=x.to;
+          if(!to || !to.location) continue; // 0 = resta esattamente dov'è
+          const z=this.zones[to.controller]?.[to.location];
+          if(!z || !SLOTTED.has(to.location)) continue;
+
+          const oldController=card.controller;
+          const oldLocation=card.location;
+          const oldSequence=card.sequence;
+          const dst=z[to.sequence] ?? null;
+
+          if(oldController===to.controller && oldLocation===to.location){
+            const src=this.zones[oldController][oldLocation];
+            src[to.sequence]=card;
+            src[oldSequence]=dst;
+            if(dst) dst.sequence=oldSequence;
+          } else {
+            const src=this.zones[oldController]?.[oldLocation];
+            if(src) src[oldSequence]=dst;
+            if(dst){
+              dst.controller=oldController;
+              dst.location=oldLocation;
+              dst.sequence=oldSequence;
+            }
+            z[to.sequence]=card;
+          }
+          card.controller=to.controller;
+          card.location=to.location;
+          card.sequence=to.sequence;
+          card.position=to.position ?? card.position;
         }
         this.emit("shuffleSet",{ location:m.location, count:moves.filter(x=>x.card).length });
         break;
