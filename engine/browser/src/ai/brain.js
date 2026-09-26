@@ -794,7 +794,21 @@ export function crearCerebro({ X, duel, db, names, nivel="normal", yo=1, log, la
   function siNo(m, tipo){
     if(n===0) return { type:tipo, yes: azar(.6) };
     const v=vistaDe(duel,yo,db,names);
-    const nom=canon(names[m.code]?.name ?? "");
+    const arriba = duel.cadena?.[duel.cadena.length-1] ?? null;
+    const codeFuente = m.code ?? arriba?.code ?? efectoPendiente?.code ?? null;
+    const nom=canon(names[codeFuente]?.name ?? "");
+
+    if(nom==="Dust Tornado"){
+      /* Il secondo effetto di Dust Tornado arriva come SELECT_YESNO senza
+         code carta. Lo identifichiamo dalla catena e diciamo sì solo se
+         abbiamo davvero una M/T in mano e uno slot libero da usare. */
+      const mtInMano=v.mano.filter(c=>((c.datos?.type??0)&(0x2|0x4))!==0);
+      const slotLiberi=Math.max(0,5-v.backrow.length);
+      const utile=slotLiberi>0 && mtInMano.length>0;
+      traza(`Dust Tornado: ${utile?"setta una M/T":"non setta"}`,
+            { mtInMano:mtInMano.map(c=>c.nombre), slotLiberi });
+      return { type:tipo, yes:utile };
+    }
 
     if(nom==="Sinister Serpent") return { type:tipo, yes:true };
 
