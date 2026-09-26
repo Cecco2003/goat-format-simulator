@@ -372,21 +372,21 @@ console.log("═══ CARTAS, UNA A UNA ═══\n");
    ──────────────────────────────────────────────────────────────── */
 {
   const e = await montar(
-    { mano:["Snatch Steal"] },
-    { mano:["Book of Moon"],
-      monstruos:[{carta:"Cyber Jar", pos:P.FACEUP_ATTACK}] },
+    { mano:["Snatch Steal","Book of Moon"] },
+    { monstruos:[{carta:"Cyber Jar", pos:P.FACEUP_ATTACK}] },
     { roboInicial:0 });
-  let snatch=false, book=false, bookRisolto=false;
+  let snatch=false, book=false;
   await e.correr((m)=>{
     if(m.type===T.SELECT_IDLECMD){
       if(e.turnPlayer===0 && !snatch){
         const r=activar(m,"Snatch Steal"); if(r){ snatch=true; return r; }
       }
-      if(e.turnPlayer===1 && snatch && !book){
+      if(e.turnPlayer===0 && snatch && !book){
         const r=activar(m,"Book of Moon"); if(r){ book=true; return r; }
       }
-      if(book && e.turnPlayer===1 && !e.mt(0).some(c=>raiz(c.nombre)==="Snatch Steal")){
-        bookRisolto=true; return "PARAR";
+      if(book){
+        const cyber=e.campo(0).find(c=>raiz(c.nombre)==="Cyber Jar");
+        if(cyber && (cyber.pos & P.FACEDOWN_DEFENSE)) return "PARAR";
       }
       return pasarIdle(m);
     }
@@ -397,10 +397,13 @@ console.log("═══ CARTAS, UNA A UNA ═══\n");
     if(m.type===T.SELECT_CHAIN) return { type:R.SELECT_CHAIN, index:null };
     if(m.type===T.SELECT_BATTLECMD) return pasarBatalla(m);
     return null;
-  }, 1200);
-  const cyber0=e.campo(0).filter(c=>raiz(c.nombre)==="Cyber Jar").length;
-  const cyber1=e.campo(1).filter(c=>raiz(c.nombre)==="Cyber Jar").length;
+  }, 800);
+  const cyber0=e.campo(0).filter(c=>raiz(c.nombre)==="Cyber Jar");
+  const cyber1=e.campo(1).filter(c=>raiz(c.nombre)==="Cyber Jar");
   const snatchCaduta=!e.mt(0).some(c=>raiz(c.nombre)==="Snatch Steal");
+  comprobar("Book of Moon gira davvero coperto il mostro rubato con Snatch",
+    book && cyber0.length===1 && (cyber0[0].pos & P.FACEDOWN_DEFENSE)!==0,
+    cyber0[0] ? `posizione ${cyber0[0].pos}` : "Cyber Jar non è lato Snatch");
   comprobar("Book of Moon fa cadere Snatch Steal dal campo",
     snatch && book && snatchCaduta,
     `Snatch sul campo: ${snatchCaduta?"no":"sì"}`);
@@ -408,8 +411,8 @@ console.log("═══ CARTAS, UNA A UNA ═══\n");
      va al Cimitero ma il mostro RESTA sotto il controllo di chi lo aveva
      rubato. È diverso dal caso in cui Snatch venga semplicemente distrutta. */
   comprobar("Book of Moon su un mostro rubato con Snatch mantiene il controllo lato Snatch",
-    cyber0===1 && cyber1===0,
-    `Cyber Jar: lato Snatch ${cyber0}, lato proprietario ${cyber1}`);
+    cyber0.length===1 && cyber1.length===0,
+    `Cyber Jar: lato Snatch ${cyber0.length}, lato proprietario ${cyber1.length}`);
 }
 
 const ok = pruebas.filter(p=>p[1]).length;
