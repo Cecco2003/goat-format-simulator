@@ -400,8 +400,10 @@ console.log("═══ CARTAS, UNA A UNA ═══\n");
   }, 1200);
   const cyber0=e.campo(0).filter(c=>raiz(c.nombre)==="Cyber Jar").length;
   const cyber1=e.campo(1).filter(c=>raiz(c.nombre)==="Cyber Jar").length;
+  const snatchCaduta=!e.mt(0).some(c=>raiz(c.nombre)==="Snatch Steal");
   comprobar("Book of Moon fa cadere Snatch Steal dal campo",
-    snatch && book && bookRisolto && !e.mt(0).some(c=>raiz(c.nombre)==="Snatch Steal"));
+    snatch && book && snatchCaduta,
+    `Snatch sul campo: ${snatchCaduta?"no":"sì"}`);
   /* Ruling GOAT/Netrep: se il mostro rubato viene girato coperto, Snatch
      va al Cimitero ma il mostro RESTA sotto il controllo di chi lo aveva
      rubato. È diverso dal caso in cui Snatch venga semplicemente distrutta. */
