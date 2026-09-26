@@ -328,5 +328,93 @@ console.log("═══ CARTAS, UNA A UNA ═══\n");
     `rimosse avversarie ${fuori1}, rimaste nel Deck avversario ${deck1}, rimosse proprie ${fuori0}`);
 }
 
+
+/* ────────────────────────────────────────────────────────────────
+   12. CYBER JAR — il riordino dei mostri coperti non deve rompere il parser
+   ──────────────────────────────────────────────────────────────── */
+{
+  const e = await montar(
+    { monstruos:[{carta:"Cyber Jar", pos:P.FACEDOWN_DEFENSE}],
+      deck:["Mystic Tomato","Mystic Tomato","Mystic Tomato","Mystic Tomato",
+            "Mystic Tomato","Mystic Tomato","Mystic Tomato"] },
+    { deck:["Book of Moon","Book of Moon","Book of Moon","Book of Moon",
+            "Book of Moon","Book of Moon","Book of Moon"] },
+    { tamañoDeck:7, roboInicial:0 });
+  let volteada=false;
+  await e.correr((m)=>{
+    if(e.tipos(T.SHUFFLE_SET_CARD).length) return "PARAR";
+    if(m.type===T.SELECT_IDLECMD){
+      if(e.turnPlayer===0 && !volteada){
+        const r=voltear(m,"Cyber Jar");
+        if(r){ volteada=true; return r; }
+      }
+      return pasarIdle(m);
+    }
+    if(m.type===T.SELECT_POSITION){
+      const p = (m.positions & P.FACEDOWN_DEFENSE) ? P.FACEDOWN_DEFENSE
+              : (m.positions & P.FACEUP_ATTACK) ? P.FACEUP_ATTACK : P.FACEUP_DEFENSE;
+      return { type:R.SELECT_POSITION, position:p };
+    }
+    if(m.type===T.SELECT_CHAIN) return { type:R.SELECT_CHAIN, index:null };
+    if(m.type===T.SELECT_BATTLECMD) return pasarBatalla(m);
+    return null;
+  }, 1200);
+  const sh=e.tipos(T.SHUFFLE_SET_CARD)[0];
+  comprobar("Cyber Jar risolve il rimescolamento dei mostri coperti senza EOF",
+    !!sh && (sh.cards??[]).length>=2,
+    sh ? `SHUFFLE_SET_CARD con ${sh.cards.length} carte` : "messaggio non ricevuto");
+  comprobar("Cyber Jar mantiene leggibili le posizioni prima/dopo del rimescolamento",
+    !!sh && sh.cards.every(x=>x.from && x.to && Number.isInteger(x.from.sequence) && Number.isInteger(x.to.sequence)));
+}
+
+/* ────────────────────────────────────────────────────────────────
+   13. SNATCH + BOOK — quando l'equipaggiamento cade, torna il controllo
+   ──────────────────────────────────────────────────────────────── */
+{
+  const e = await montar(
+    { mano:["Snatch Steal","Book of Moon"] },
+    { monstruos:[{carta:"Cyber Jar", pos:P.FACEUP_ATTACK}] },
+    { roboInicial:0 });
+  let snatch=false, book=false;
+  await e.correr((m)=>{
+    if(m.type===T.SELECT_IDLECMD){
+      if(e.turnPlayer===0 && !snatch){
+        const r=activar(m,"Snatch Steal"); if(r){ snatch=true; return r; }
+      }
+      if(e.turnPlayer===0 && snatch && !book){
+        const r=activar(m,"Book of Moon"); if(r){ book=true; return r; }
+      }
+      if(book){
+        const cyber=e.campo(0).find(c=>raiz(c.nombre)==="Cyber Jar");
+        if(cyber && (cyber.pos & P.FACEDOWN_DEFENSE)) return "PARAR";
+      }
+      return pasarIdle(m);
+    }
+    if(m.type===T.SELECT_CARD){
+      const i=(m.selects??[]).findIndex(x=>x.code===codigo("Cyber Jar"));
+      return elegir(m,i<0?0:i);
+    }
+    if(m.type===T.SELECT_CHAIN) return { type:R.SELECT_CHAIN, index:null };
+    if(m.type===T.SELECT_BATTLECMD) return pasarBatalla(m);
+    return null;
+  }, 800);
+  const cyber0=e.campo(0).filter(c=>raiz(c.nombre)==="Cyber Jar");
+  const cyber1=e.campo(1).filter(c=>raiz(c.nombre)==="Cyber Jar");
+  const snatchCaduta=!e.mt(0).some(c=>raiz(c.nombre)==="Snatch Steal");
+  comprobar("Book of Moon gira davvero coperto il mostro rubato con Snatch",
+    book && cyber0.length===1 && (cyber0[0].pos & P.FACEDOWN_DEFENSE)!==0,
+    cyber0[0] ? `posizione ${cyber0[0].pos}` : "Cyber Jar non è lato Snatch");
+  comprobar("Book of Moon fa cadere Snatch Steal dal campo",
+    snatch && book && snatchCaduta,
+    `Snatch sul campo: ${snatchCaduta?"no":"sì"}`);
+  /* Ruling GOAT/Netrep: se il mostro rubato viene girato coperto, Snatch
+     va al Cimitero ma il mostro RESTA sotto il controllo di chi lo aveva
+     rubato. È diverso dal caso in cui Snatch venga semplicemente distrutta. */
+  comprobar("Book of Moon su un mostro rubato con Snatch mantiene il controllo lato Snatch",
+    cyber0.length===1 && cyber1.length===0,
+    `Cyber Jar: lato Snatch ${cyber0.length}, lato proprietario ${cyber1.length}`);
+}
+
 const ok = pruebas.filter(p=>p[1]).length;
 console.log(`\n${ok}/${pruebas.length} comprobaciones de carta pasan`);
+if(ok !== pruebas.length) process.exitCode = 1;
