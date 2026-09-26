@@ -18,6 +18,7 @@
 const EN = {
   /* ── barra superior y menús ── */
   "Goat Format":"Goat Format",
+  "Goat Format — simulador":"Goat Format — Simulator",
   "motor ocgcore · reglas 2005":"ocgcore engine · 2005 rules",
   "Cadenas":"Chains",
   "Cadenas: automáticas":"Chains: automatic",
@@ -178,6 +179,8 @@ const EN = {
   "Mis mazos":"My decks",
   "Clic izquierdo: añadir al mazo.":"Left click: add to the deck.",
   "Clic derecho: añadir al Side.":"Right click: add to the Side.",
+  "Clic en una carta del mazo: quitarla.":"Click a card in the deck to remove it.",
+  "Pasa el ratón por una carta para ver su texto.":"Hover a card to read its text.",
   "Buscar por nombre o texto…":"Search by name or text…",
   "Todos":"All", "Monstruos":"Monsters", "Mágicas":"Spells", "Trampas":"Traps",
   "Main Deck":"Main Deck", "Extra Deck":"Extra Deck", "Side Deck":"Side Deck",
@@ -298,10 +301,12 @@ export function idioma(){ return idiomaActual; }
 export function T(s){
   if(idiomaActual === "es" || s == null) return s;
   const t = String(s);
-  const exacto = EN[t.trim()];
-  if(exacto !== undefined) return t.replace(t.trim(), exacto);
+  const limpio = t.trim();
+  const normal = limpio.replace(/\s+/g, " ");
+  const exacto = EN[limpio] ?? EN[normal];
+  if(exacto !== undefined) return t.replace(limpio, exacto);
   for(const [re, fn] of REGLAS){
-    const m = re.exec(t.trim());
+    const m = re.exec(normal);
     if(m) return fn(m);
   }
   return s;
