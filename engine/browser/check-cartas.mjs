@@ -402,10 +402,14 @@ console.log("═══ CARTAS, UNA A UNA ═══\n");
   const cyber1=e.campo(1).filter(c=>raiz(c.nombre)==="Cyber Jar").length;
   comprobar("Book of Moon fa cadere Snatch Steal dal campo",
     snatch && book && bookRisolto && !e.mt(0).some(c=>raiz(c.nombre)==="Snatch Steal"));
-  comprobar("dopo la perdita di Snatch il mostro torna al controllore originale",
-    cyber0===0 && cyber1===1,
+  /* Ruling GOAT/Netrep: se il mostro rubato viene girato coperto, Snatch
+     va al Cimitero ma il mostro RESTA sotto il controllo di chi lo aveva
+     rubato. È diverso dal caso in cui Snatch venga semplicemente distrutta. */
+  comprobar("Book of Moon su un mostro rubato con Snatch mantiene il controllo lato Snatch",
+    cyber0===1 && cyber1===0,
     `Cyber Jar: lato Snatch ${cyber0}, lato proprietario ${cyber1}`);
 }
 
 const ok = pruebas.filter(p=>p[1]).length;
 console.log(`\n${ok}/${pruebas.length} comprobaciones de carta pasan`);
+if(ok !== pruebas.length) process.exitCode = 1;
