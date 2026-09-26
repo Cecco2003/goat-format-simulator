@@ -187,7 +187,7 @@ function declararCarta(codigos, alElegir){
   const p=document.getElementById("prompt");
   p.innerHTML=`<div class="ptitle">${T("Declara una carta")}</div>
     <input id="buscaCarta" placeholder="${T("Escribe un nombre…")}" autocomplete="off">
-    <div class="pnote" id="buscaAyuda">${codigos.length} cartas posibles</div>
+    <div class="pnote" id="buscaAyuda">${T(`${codigos.length} cartas posibles`)}</div>
     <div class="popts" id="buscaRes"></div>`;
   p.style.display="block";
   const inp=p.querySelector("#buscaCarta"), res=p.querySelector("#buscaRes");
@@ -207,7 +207,8 @@ function declararCarta(codigos, alElegir){
       res.appendChild(b);
     }
     p.querySelector("#buscaAyuda").textContent =
-      q ? `${hits.length}${hits.length>=40?"+":""} coincidencias` : `${codigos.length} cartas posibles · escribe para filtrar`;
+      q ? T(`${hits.length}${hits.length>=40?"+":""} coincidencias`)
+        : T(`${codigos.length} cartas posibles · escribe para filtrar`);
   };
   inp.oninput=pintar; pintar();
   setTimeout(()=>inp.focus?.(),30);
@@ -239,7 +240,7 @@ function startPromptTimer(segundos, alAgotarse){
   },100);
 }
 let MSGNAME={};
-function msgName(m){ return MSGNAME[m.type] ?? ("tipo "+m.type); }
+function msgName(m){ return MSGNAME[m.type] ?? (T("tipo")+" "+m.type); }
 /* En qué momento exacto se te está preguntando. No hace falta adivinarlo:
    el propio mensaje del motor trae el "timing". Importa sobre todo en
    batalla, donde responder en la declaración de ataque o ya dentro del
@@ -595,7 +596,7 @@ function ask(m){
     default: {
       const r=decideAI(m,0);
       if(r) return send(r);
-      return panel("Decisión no soportada ("+m.type+")",[{label:"Continuar",run:()=>loop()}]);
+      return panel(T("Decisión no soportada")+" ("+m.type+")",[{label:"Continuar",run:()=>loop()}]);
     }
   }
 }
@@ -747,7 +748,7 @@ export async function boot({ createCore, Xns, GoatDuel, makeAutoPlayer, makeTriv
     const arr=duel.zones[owner][ZL[zone]] ?? [];
     const quien = T(Number(owner)===ME ? "tu" : "del rival");
     const titulo = T(zone==="gy"?"Cementerio" : zone==="extra"?"Extra Deck" : "Cartas desterradas");
-    View.openZoneView(`${titulo} ${quien} — ${arr.length} carta(s)`,
+    View.openZoneView(`${titulo} ${quien} — ${T(`${arr.length} carta(s)`)}`,
       [...arr].reverse());
   });
 
