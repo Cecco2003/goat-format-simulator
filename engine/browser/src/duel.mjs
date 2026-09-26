@@ -296,6 +296,27 @@ export class GoatDuel {
         this.lp[m.player] = m.lp; this.emit("lp",{ player:m.player, value:m.lp }); break;
       case T.WIN:
         this.finished = true; this.emit("win",{ player:m.player, reason:m.reason }); break;
+      case T.SHUFFLE_SET_CARD: {
+        /* MSG_SHUFFLE_SET_CARD arriva come lista di posizioni prima/dopo.
+           Applichiamo il riordino in due tempi: prima catturiamo le carte,
+           poi liberiamo gli slot, infine le reinseriamo. Farlo in-place
+           perderebbe una carta quando due slot vengono scambiati. */
+        const moves=(m.cards??[]).map(x=>({x,card:this.at(x.from.controller,x.from.location,x.from.sequence)}));
+        for(const {x,card} of moves){
+          if(!card) continue;
+          const z=this.zones[x.from.controller]?.[x.from.location];
+          if(z && SLOTTED.has(x.from.location)) z[x.from.sequence]=null;
+        }
+        for(const {x,card} of moves){
+          if(!card) continue;
+          card.controller=x.to.controller; card.location=x.to.location; card.sequence=x.to.sequence;
+          card.position=x.to.position ?? card.position;
+          const z=this.zones[x.to.controller]?.[x.to.location];
+          if(z) z[x.to.sequence]=card;
+        }
+        this.emit("shuffleSet",{ location:m.location, count:moves.filter(x=>x.card).length });
+        break;
+      }
       case T.SHUFFLE_DECK: this.emit("shuffle",{ player:m.player }); break;
       /* Delinquent Duo, Graceful Charity y los descartes al azar hacen que el
          core baraje la mano. Si no reordenamos igual, nuestro espejo queda
