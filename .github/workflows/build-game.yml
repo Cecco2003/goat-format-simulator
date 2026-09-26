@@ -7,6 +7,7 @@ on:
       - "engine/browser/src/**"
       - "engine/browser/out/**"
       - "engine/data/**"
+      - "engine/deckbuilder/**"
       - ".github/workflows/build-game.yml"
 
 permissions:
@@ -23,17 +24,22 @@ jobs:
       - name: Build single-file game
         working-directory: engine/browser
         run: node build-html.mjs
+      - name: Build Deck Builder
+        working-directory: engine/deckbuilder
+        run: node build.mjs
       - name: Publish generated HTML
-        run: cp engine/browser/out/goat.html goat-simulador.html
-      - name: Commit generated game if changed
+        run: |
+          cp engine/browser/out/goat.html goat-simulador.html
+          cp engine/deckbuilder/deckbuilder.html deckbuilder.html
+      - name: Commit generated pages if changed
         shell: bash
         run: |
-          if git diff --quiet -- goat-simulador.html; then
-            echo "Published game is already up to date."
+          if git diff --quiet -- goat-simulador.html deckbuilder.html; then
+            echo "Published pages are already up to date."
             exit 0
           fi
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add goat-simulador.html
-          git commit -m "Rebuild published game HTML"
+          git add goat-simulador.html deckbuilder.html
+          git commit -m "Rebuild published game pages"
           git push
