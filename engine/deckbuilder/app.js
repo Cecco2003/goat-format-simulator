@@ -78,7 +78,7 @@ function filtrar(){
 }
 function pintarResultados(){
   const res=filtrar();
-  $("#conteo").textContent = `${res.length}${res.length>=400?"+":""} cartas`;
+  $("#conteo").textContent = T(`${res.length}${res.length>=400?"+":""} cartas`);
   const g=$("#grid"); g.innerHTML="";
   for(const code of res){
     const d=dat(code), el=document.createElement("div");
@@ -99,8 +99,8 @@ function detalle(code){
   $("#detalle").innerHTML=`
     <img src="${IMG}${base(code)}.jpg" alt="">
     <h3>${nom(code)}</h3>
-    <div class="meta">${mon ? `${ATTR[d.attribute]??""} · Nivel ${d.level} · ${RACE[+d.race]??""}`
-                            : (d.type&T_SPELL?"Carta Mágica":"Carta de Trampa")}</div>
+    <div class="meta">${mon ? `${T(ATTR[d.attribute]??"")} · ${T("Nivel "+d.level)} · ${T(RACE[+d.race]??"")}`
+                            : T(d.type&T_SPELL?"Carta Mágica":"Carta de Trampa")}</div>
     ${mon?`<div class="stats"><span>ATK ${d.attack}</span><span>DEF ${d.defense}</span></div>`:""}
     <p>${txt(code).replace(/\r?\n/g,"<br>")}</p>`;
 }
@@ -127,12 +127,12 @@ function pintarDeck(){
   }
   const m=D.main.length;
   const ok = m>=40 && m<=60 && D.extra.length<=15 && D.side.length<=15;
-  $("#estado").textContent = ok ? "Mazo válido" : (m<40?`Faltan ${40-m} cartas`:`Sobran ${m-60}`);
+  $("#estado").textContent = T(ok ? "Mazo válido" : (m<40?`Faltan ${40-m} cartas`:`Sobran ${m-60}`));
   $("#estado").className = ok ? "ok" : "mal";
   const mon=D.main.filter(c=>dat(c).type&T_MON).length;
   const mag=D.main.filter(c=>dat(c).type&T_SPELL).length;
   const tra=D.main.filter(c=>dat(c).type&T_TRAP).length;
-  $("#reparto").textContent = `${mon} monstruos · ${mag} mágicas · ${tra} trampas`;
+  $("#reparto").textContent = T(`${mon} monstruos · ${mag} mágicas · ${tra} trampas`);
   guardar(); pintarResultados();
 }
 function aviso(t){
@@ -190,7 +190,7 @@ function exportarParaSimulador(){
     const a=CARDS[c]?.alias;
     if(a && CARDS[a]){ cards[a]=CARDS[a]; names[a]={name:TEXTS[a][0],desc:TEXTS[a][1]}; }
   }
-  return JSON.stringify({ formato:"goat-deck-v1", nombre:$("#nombreMazo").value||"Mazo sin nombre",
+  return JSON.stringify({ formato:"goat-deck-v1", nombre:$("#nombreMazo").value||T("Mazo sin nombre"),
     main:D.main, extra:D.extra, side:D.side, cards, names }, null, 0);
 }
 function bajar(nombre, contenido, tipo="text/plain"){
@@ -227,7 +227,7 @@ function cargarGuardado(){
 }
 function valido(){ return D.main.length>=40 && D.main.length<=60; }
 function guardarSlot(comoNuevo){
-  const nombre=($("#nombreMazo").value||"").trim() || "Mazo sin nombre";
+  const nombre=($("#nombreMazo").value||"").trim() || T("Mazo sin nombre");
   if(!D.main.length){ aviso("El mazo está vacío"); return; }
   const datos={ nombre, main:[...D.main], extra:[...D.extra], side:[...D.side],
                 valido:valido(), fecha:Date.now() };
@@ -242,11 +242,11 @@ function cargarSlot(i){
   const s=slots[i]; if(!s) return;
   D.main=[...s.main]; D.extra=[...s.extra]; D.side=[...(s.side||[])];
   $("#nombreMazo").value=s.nombre; slotActivo=i;
-  pintarDeck(); pintarSlots(); aviso(`Cargado: ${s.nombre}`);
+  pintarDeck(); pintarSlots(); aviso(`${T("Cargado")}: ${s.nombre}`);
 }
 function borrarSlot(i){
   const s=slots[i]; if(!s) return;
-  if(!confirm(`¿Borrar "${s.nombre}"?`)) return;
+  if(!confirm(T(`¿Borrar "${s.nombre}"?`))) return;
   slots.splice(i,1);
   if(slotActivo===i) slotActivo=null; else if(slotActivo>i) slotActivo--;
   escribirSlots(); pintarSlots(); aviso("Mazo borrado");
@@ -255,14 +255,14 @@ function pintarSlots(){
   const c=$("#slots"); if(!c) return;
   c.innerHTML="";
   if(!slots.length){
-    c.innerHTML='<div class="vacio">Aún no has guardado ningún mazo</div>';
+    c.innerHTML=`<div class="vacio">${T("Aún no has guardado ningún mazo")}</div>`;
   }
   slots.forEach((s,i)=>{
     const el=document.createElement("div");
     el.className="slot"+(i===slotActivo?" act":"")+(s.valido?"":" inval");
     el.innerHTML=`<span class="sn">${s.nombre}</span>
       <span class="sc">${s.main.length}${s.extra.length?"+"+s.extra.length:""}</span>
-      <button class="sx" title="Borrar">✕</button>`;
+      <button class="sx" title="${T("Borrar")}">✕</button>`;
     el.onclick=e=>{ if(e.target.classList.contains("sx")) return; cargarSlot(i); };
     el.querySelector(".sx").onclick=e=>{ e.stopPropagation(); borrarSlot(i); };
     c.appendChild(el);
@@ -272,6 +272,11 @@ function pintarSlots(){
 
 /* ── arranque ── */
 function init(){
+  try{
+    const cfg=JSON.parse(localStorage.getItem("goatConfig")||"{}");
+    setIdioma(cfg.idioma==="es" ? "es" : "en");
+  }catch(e){ setIdioma("en"); }
+  traducirDOM(document.body);
   $("#buscar").oninput=e=>{ filtro.texto=e.target.value; pintarResultados(); };
   $("#fTipo").onchange=e=>{ filtro.tipo=e.target.value; pintarResultados(); };
   $("#fAtr").onchange=e=>{ filtro.atributo=+e.target.value; pintarResultados(); };
@@ -286,7 +291,7 @@ function init(){
     const r=new FileReader(); r.onload=()=>importarYDK(String(r.result)); r.readAsText(f);
   };
   $("#pegar").onclick=()=>{
-    const t=prompt("Pega aquí la lista (YDK o nombres, uno por línea):");
+    const t=prompt(T("Pega aquí la lista (YDK o nombres, uno por línea):"));
     if(t) importarYDK(t);
   };
   $("#nombreMazo").oninput=guardar;
@@ -296,6 +301,6 @@ function init(){
     slotActivo=null; $("#nombreMazo").value=""; pintarDeck(); pintarSlots(); };
   const av=$("#avisoPool");
   if(!hayPool) av.style.display="block";
-  cargarGuardado(); pintarDeck();
+  cargarGuardado(); pintarDeck(); traducirDOM(document.body);
 }
 document.addEventListener("DOMContentLoaded", init);
