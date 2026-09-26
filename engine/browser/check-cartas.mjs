@@ -368,6 +368,44 @@ console.log("═══ CARTAS, UNA A UNA ═══\n");
 }
 
 /* ────────────────────────────────────────────────────────────────
+   12b. CYBER JAR — una sola Special Summon coperta resta nel mirror
+   ──────────────────────────────────────────────────────────────── */
+{
+  const e = await montar(
+    { monstruos:[{carta:"Cyber Jar", pos:P.FACEDOWN_DEFENSE}],
+      deck:["Mystic Tomato","Book of Moon","Book of Moon","Book of Moon","Book of Moon"] },
+    { deck:["Book of Moon","Book of Moon","Book of Moon","Book of Moon","Book of Moon"] },
+    { tamañoDeck:5, roboInicial:0 });
+  let volteada=false;
+  await e.correr((m)=>{
+    if(e.tipos(T.SHUFFLE_SET_CARD).length) return "PARAR";
+    if(m.type===T.SELECT_IDLECMD){
+      if(e.turnPlayer===0 && !volteada){
+        const r=voltear(m,"Cyber Jar");
+        if(r){ volteada=true; return r; }
+      }
+      return pasarIdle(m);
+    }
+    if(m.type===T.SELECT_POSITION){
+      return { type:R.SELECT_POSITION, position:P.FACEDOWN_DEFENSE };
+    }
+    if(m.type===T.SELECT_CHAIN) return { type:R.SELECT_CHAIN, index:null };
+    if(m.type===T.SELECT_BATTLECMD) return pasarBatalla(m);
+    return null;
+  }, 1000);
+
+  const sh=e.tipos(T.SHUFFLE_SET_CARD)[0];
+  const campo=e.campo(0);
+  const tomate=campo.find(c=>raiz(c.nombre)==="Mystic Tomato");
+  comprobar("Cyber Jar con un solo mostro coperto emette SHUFFLE_SET_CARD count=1",
+    !!sh && (sh.cards??[]).length===1,
+    sh ? `count ${sh.cards.length}` : "messaggio non ricevuto");
+  comprobar("il mostro coperto di Cyber Jar resta nello slot dopo SHUFFLE_SET_CARD",
+    !!tomate && (tomate.pos & P.FACEDOWN_DEFENSE)!==0,
+    campo.length ? `campo: ${campo.map(c=>c.nombre+"@"+c.sec).join(", ")}` : "campo vuoto");
+}
+
+/* ────────────────────────────────────────────────────────────────
    13. SNATCH + BOOK — quando l'equipaggiamento cade, torna il controllo
    ──────────────────────────────────────────────────────────────── */
 {
