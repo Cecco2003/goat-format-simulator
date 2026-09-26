@@ -208,6 +208,8 @@ const EN = {
   "Borrar":"Delete", "Cargado":"Loaded", "Faltan":"Missing", "Sobran":"Too many",
   "cartas":"cards", "monstruos":"monsters", "mágicas":"spells", "trampas":"traps",
   "Forzando avance…":"Forcing advance…",
+  "Decisión no soportada":"Unsupported decision", "tipo":"type", "(tuyo)":"(yours)",
+  "Elige un mazo.":"Choose a deck.",
   "Pool provisional: se muestran todas las cartas de la base de datos. Falta la lista oficial de Goat para restringirlo — mira el README.":
     "Provisional pool: all cards in the database are shown. The official Goat list is missing — see the README.",
 
@@ -258,6 +260,7 @@ const REGLAS = [
   [/^Turno (\d+)$/,                       m=>`Turn ${m[1]}`],
   [/^(\d+) turnos · (.+)$/,               m=>`${m[1]} turns · ${m[2]}`],
   [/^(\d+) turnos$/,                      m=>`${m[1]} turns`],
+  [/^(\d+) carta\(s\)$/,                  m=>`${m[1]} card(s)`],
   [/^(\d+) cartas posibles$/,               m=>`${m[1]} cards available`],
   [/^(\d+)\+? coincidencias$/,              m=>`${m[1]} matches`],
   [/^(\d+) cartas posibles · escribe para filtrar$/, m=>`${m[1]} cards available · type to filter`],
