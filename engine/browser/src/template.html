@@ -999,7 +999,7 @@ function listaMazos(){
     let mejor=null, mx=-1;
     for(const c of m.main){ const d=CARDS[c];
       if(d && (d.type & 1) && d.attack>mx){ mx=d.attack; mejor=d.alias||c; } }
-    l.push({id:"u"+i, nombre:m.nombre+" (tuyo)", main:m.main, extra:m.extra,
+    l.push({id:"u"+i, nombre:m.nombre+" "+(__T?.("(tuyo)") ?? "(tuyo)"), main:m.main, extra:m.extra,
             aviso: m.main.length<40?"solo "+m.main.length+" cartas":null,
             portada:mejor, propio:true});
   });
@@ -1092,7 +1092,7 @@ function pintarBots(){
     z.appendChild(fila);
   });
   const r=document.getElementById("bResumen");
-  if(r) r.textContent = `${ganados} de ${total} retos superados`;
+  if(r) r.textContent = __T?.(`${ganados} de ${total} retos superados`) ?? `${ganados} de ${total} retos superados`;
 }
 function pintarMenu(){
   __setIdioma?.(cfg.idioma);
@@ -1108,8 +1108,10 @@ function pintarMenu(){
   pintarGaleria();
   const m=buscaMazo(cfg.mazo);
   document.getElementById("mMazoInfo").textContent = !m ? ""
-    : m.aviso ? `⚠ ${m.aviso}: el Main Deck necesita 40 como mínimo`
-    : `${m.main.length} cartas · validado contra la lista oficial`;
+    : __T?.(m.aviso ? `⚠ ${m.aviso}: el Main Deck necesita 40 como mínimo`
+                     : `${m.main.length} cartas · validado contra la lista oficial`)
+      ?? (m.aviso ? `⚠ ${m.aviso}: el Main Deck necesita 40 como mínimo`
+                  : `${m.main.length} cartas · validado contra la lista oficial`);
   const selIA=document.getElementById("mMazoIA");
   selIA.innerHTML = `<option value="__azar__">Al azar entre los incluidos</option>` +
     `<option value="__mismo__">El mismo que el tuyo</option>` +
@@ -1149,8 +1151,8 @@ pintarMenu(); irA("home");
    intentando (para apuntar la victoria en el progreso). */
 function lanzarDuelo(opciones={}){
   const mio=buscaMazo(cfg.mazo);
-  if(!mio){ alert("Elige un mazo."); return; }
-  if(mio.main.length<40){ alert(`"${mio.nombre}" tiene ${mio.main.length} cartas; hacen falta 40.`); return; }
+  if(!mio){ alert(__T?.("Elige un mazo.") ?? "Elige un mazo."); return; }
+  if(mio.main.length<40){ const msg=`"${mio.nombre}" tiene ${mio.main.length} cartas; hacen falta 40.`; alert(__T?.(msg) ?? msg); return; }
   const incluidos=listaMazos().filter(m=>!m.propio && !m.aviso);
   const quiereIA = opciones.mazoIA ?? cfg.mazoIA;
   let rival;
@@ -1162,7 +1164,7 @@ function lanzarDuelo(opciones={}){
   const mazoR = { deck:[...rival.main], extra:[...rival.extra] };
   const faltan = [...new Set([...mazo.deck,...mazo.extra,...mazoR.deck,...mazoR.extra])]
                    .filter(c=>!CARDS[c]);
-  if(faltan.length){ alert("Hay cartas fuera del pool de Goat ("+faltan.length+")."); return; }
+  if(faltan.length){ const msg="Hay cartas fuera del pool de Goat ("+faltan.length+")."; alert(__T?.(msg) ?? msg); return; }
   document.getElementById("menu").style.display="none";
   // el clic de empezar duelo es el gesto que hace falta para pantalla completa
   // ojo: en el DOM simulado de las pruebas no existe matchMedia

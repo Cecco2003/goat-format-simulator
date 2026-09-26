@@ -18,6 +18,7 @@
 const EN = {
   /* ── barra superior y menús ── */
   "Goat Format":"Goat Format",
+  "Goat Format — simulador":"Goat Format — Simulator",
   "motor ocgcore · reglas 2005":"ocgcore engine · 2005 rules",
   "Cadenas":"Chains",
   "Cadenas: automáticas":"Chains: automatic",
@@ -178,6 +179,8 @@ const EN = {
   "Mis mazos":"My decks",
   "Clic izquierdo: añadir al mazo.":"Left click: add to the deck.",
   "Clic derecho: añadir al Side.":"Right click: add to the Side.",
+  "Clic en una carta del mazo: quitarla.":"Click a card in the deck to remove it.",
+  "Pasa el ratón por una carta para ver su texto.":"Hover a card to read its text.",
   "Buscar por nombre o texto…":"Search by name or text…",
   "Todos":"All", "Monstruos":"Monsters", "Mágicas":"Spells", "Trampas":"Traps",
   "Main Deck":"Main Deck", "Extra Deck":"Extra Deck", "Side Deck":"Side Deck",
@@ -203,6 +206,15 @@ const EN = {
   "Fusión":"Fusion", "Psíquico":"Psychic",
   "Importado":"Imported", "Guardado":"Saved", "Nuevo mazo":"New deck",
   "Mis mazos":"My decks", "Buscar":"Search",
+  "Vaciar":"Clear", "Pegar lista":"Paste list", "Importar .ydk":"Import .ydk",
+  "Exportar .ydk":"Export .ydk", "Atributo":"Attribute", "Nivel":"Level",
+  "Borrar":"Delete", "Cargado":"Loaded", "Faltan":"Missing", "Sobran":"Too many",
+  "cartas":"cards", "monstruos":"monsters", "mágicas":"spells", "trampas":"traps",
+  "Forzando avance…":"Forcing advance…",
+  "Decisión no soportada":"Unsupported decision", "tipo":"type", "(tuyo)":"(yours)",
+  "Elige un mazo.":"Choose a deck.",
+  "Pool provisional: se muestran todas las cartas de la base de datos. Falta la lista oficial de Goat para restringirlo — mira el README.":
+    "Provisional pool: all cards in the database are shown. The official Goat list is missing — see the README.",
 
   /* ── zonas y tipos (para los textos de las cartas) ── */
   "Carta Mágica":"Spell Card", "Carta de Trampa":"Trap Card",
@@ -251,6 +263,28 @@ const REGLAS = [
   [/^Turno (\d+)$/,                       m=>`Turn ${m[1]}`],
   [/^(\d+) turnos · (.+)$/,               m=>`${m[1]} turns · ${m[2]}`],
   [/^(\d+) turnos$/,                      m=>`${m[1]} turns`],
+  [/^(\d+) carta\(s\)$/,                  m=>`${m[1]} card(s)`],
+  [/^(\d+) cartas posibles$/,               m=>`${m[1]} cards available`],
+  [/^(\d+)\+? coincidencias$/,              m=>`${m[1]} matches`],
+  [/^(\d+) cartas posibles · escribe para filtrar$/, m=>`${m[1]} cards available · type to filter`],
+  [/^solo (\d+) cartas$/,                    m=>`only ${m[1]} cards`],
+  [/^(\d+) cartas$/,                         m=>`${m[1]} cards`],
+  [/^Faltan (\d+) cartas$/,                  m=>`Missing ${m[1]} cards`],
+  [/^Sobran (\d+)$/,                         m=>`${m[1]} too many`],
+  [/^(\d+) monstruos · (\d+) mágicas · (\d+) trampas$/,
+                                            m=>`${m[1]} monsters · ${m[2]} spells · ${m[3]} traps`],
+  [/^máximo (\d+) copia\(s\)$/,            m=>`maximum ${m[1]} copy/copies`],
+  [/^(.+) por nombre$/,                       m=>`${m[1]} by name`],
+  [/^(.+) sin identificar$/,                 m=>`${m[1]} unidentified`],
+  [/^Cargado: (.+)$/,                        m=>`Loaded: ${m[1]}`],
+  [/^¿Borrar "(.+)"\?$/,                    m=>`Delete "${m[1]}"?`],
+  [/^⚠ (.+): el Main Deck necesita 40 como mínimo$/,
+                                            m=>`⚠ ${T(m[1])}: the Main Deck needs at least 40 cards`],
+  [/^"(.+)" tiene (\d+) cartas; hacen falta 40\.$/,
+                                            m=>`"${m[1]}" has ${m[2]} cards; 40 are required.`],
+  [/^Hay cartas fuera del pool de Goat \((\d+)\)\.$/,
+                                            m=>`There are ${m[1]} cards outside the Goat pool.`],
+  [/^Log descargado \((\d+) entradas\)$/, m=>`Log downloaded (${m[1]} entries)`],
   [/^(\d+) de (\d+) retos superados$/,    m=>`${m[1]} of ${m[2]} challenges beaten`],
   [/^(\d+)\/(\d+) dificultades$/,         m=>`${m[1]}\/${m[2]} difficulties`],
   [/^(.+) cartas · validado contra la lista oficial$/,
@@ -267,10 +301,12 @@ export function idioma(){ return idiomaActual; }
 export function T(s){
   if(idiomaActual === "es" || s == null) return s;
   const t = String(s);
-  const exacto = EN[t.trim()];
-  if(exacto !== undefined) return t.replace(t.trim(), exacto);
+  const limpio = t.trim();
+  const normal = limpio.replace(/\s+/g, " ");
+  const exacto = EN[limpio] ?? EN[normal];
+  if(exacto !== undefined) return t.replace(limpio, exacto);
   for(const [re, fn] of REGLAS){
-    const m = re.exec(t.trim());
+    const m = re.exec(normal);
     if(m) return fn(m);
   }
   return s;
