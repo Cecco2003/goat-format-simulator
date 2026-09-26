@@ -116,6 +116,11 @@ export class GoatDuel {
     const byCode = z.find(c => c && c.code === want);
     if(byCode){
       this.desyncs++;
+      this.emit("desync",{
+        controller:loc.controller, location:loc.location,
+        requestedSequence:loc.sequence, wantedCode:want,
+        directCode:direct?.code ?? null, resolvedSequence:byCode.sequence
+      });
       return byCode;
     }
     return direct;
